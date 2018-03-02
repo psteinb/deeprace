@@ -8,6 +8,7 @@ import re
 import datetime
 import logging
 import socket
+import datetime
 
 if importlib.find_loader:
     finder = importlib.find_loader
@@ -86,6 +87,7 @@ def main():
     parser.add_argument('-e','--nepochs', type=int, default=0,
                         help='number of epochs to run')
 
+
     parser.add_argument('-d','--dataset', type=str, default='cifar10',
                         help='specify the dataset to use')
 
@@ -100,7 +102,8 @@ def main():
     numeric_level = getattr(logging, args.loglevel.upper(), None)
     if not isinstance(numeric_level, int):
         raise ValueError('Invalid log level: %s' % args.loglevel)
-    logging.basicConfig(level=numeric_level,format=('[%(asctime)-15s] '+socket.gethostname().split(".")[0]+' :: %(message)s'))
+    hname = socket.gethostname().split(".")[0]
+    logging.basicConfig(level=numeric_level,format=('[%(asctime)-15s] '+hname+' :: %(message)s'))
 
     models = available_models()
     if not args.model:
@@ -121,8 +124,35 @@ def main():
 
     hist, timings = loaded.train(train,test,datafraction=args.datafraction,**deciphered)
 
-    print(hist,dir(hist),hist.history)
-    logging.info("training took (s) %s"," ".join([ str(it) for it in timings.epoch_durations]))
+    with open(args.timings,'w') as csvout:
+
+        runid = "{hostname}-{model}-{dataset},{load_end},{load_end},{train_end},{train_end}".format(hostname=hname,
+                                                                                model=args.model[0],
+                                                                                dataset=args.dataset,
+                                                                                load_start=start.strftime("%Y%m%d:%H%M%S"),
+                                                                                load_end=end.strftime("%Y%m%d:%H%M%S"),
+                                                                                train_start=timings.train_begin.strftime("%Y%m%d:%H%M%S"),
+                                                                                train_end=timings.train_end.strftime("%Y%m%d:%H%M%S")
+
+        )
+
+        csvout.write("runid,load_begin,load_end,train_start,train_end,epoch,rel_epoch_start_sec,epoch_dur_sec,loss,acc,val_loss,val_acc,details\n")
+        for i in range(len(timings.epoch_durations)):
+            line = "{runid},{num},{rel_epoch_start_sec},{epoch_dur_sec},{loss},{acc},{val_loss},{val_acc},{detail}\n".format(
+                runid=constant,
+                num=i,
+                rel_epoch_start_sec=timings.epoch_start[i],
+                epoch_dur_sec=timings.epoch_durations[i],
+                loss=hist.history['loss'][i],
+                acc=hist.history['acc'][i],
+                val_loss=hist.history['val_loss'][i],
+                val_acc= hist.history['val_acc'][i],
+                detail="-"
+            )
+            csvout.write(line)
+        csvout.close()
+        logging.info('wrote %s',args.timings)
+
 
     sys.exit(0)
 
