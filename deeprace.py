@@ -117,7 +117,7 @@ def main():
         deciphered["epochs"] = args.nepochs
 
     start = datetime.datetime.now()
-    train, test = loaded.data_loader(args.datapath)
+    train, test, ntrain, ntest = loaded.data_loader(args.datapath)
     end = datetime.datetime.now()
     logging.info("loading the data took %f seconds" % ((end-start).total_seconds()))
     logging.info("handing over %s to %s" % (deciphered,args.model[0]))
@@ -126,20 +126,22 @@ def main():
 
     with open(args.timings,'w') as csvout:
 
-        runid = "{hostname}-{model}-{dataset},{load_end},{load_end},{train_end},{train_end}".format(hostname=hname,
+        runid = "{hostname}-{model}-{dataset},{load_dur_sec},{ntrain},{ntest},{df},{train_start},{train_end}".format(hostname=hname,
                                                                                 model=args.model[0],
                                                                                 dataset=args.dataset,
-                                                                                load_start=start.strftime("%Y%m%d:%H%M%S"),
-                                                                                load_end=end.strftime("%Y%m%d:%H%M%S"),
+                                                                                load_dur_sec=(end-start).total_seconds(),
+                                                                                ntrain=ntrain,
+                                                                                ntest=ntest,
+                                                                                df=args.datafraction,
                                                                                 train_start=timings.train_begin.strftime("%Y%m%d:%H%M%S"),
                                                                                 train_end=timings.train_end.strftime("%Y%m%d:%H%M%S")
 
         )
 
-        csvout.write("runid,load_begin,load_end,train_start,train_end,epoch,rel_epoch_start_sec,epoch_dur_sec,loss,acc,val_loss,val_acc,details\n")
+        csvout.write("runid,load_dur_sec,ntrain,ntest,datafraction,train_start,train_end,epoch,rel_epoch_start_sec,epoch_dur_sec,loss,acc,val_loss,val_acc,details\n")
         for i in range(len(timings.epoch_durations)):
             line = "{runid},{num},{rel_epoch_start_sec},{epoch_dur_sec},{loss},{acc},{val_loss},{val_acc},{detail}\n".format(
-                runid=constant,
+                runid=runid,
                 num=i,
                 rel_epoch_start_sec=timings.epoch_start[i],
                 epoch_dur_sec=timings.epoch_durations[i],
