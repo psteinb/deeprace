@@ -60,8 +60,9 @@ def params_from_name(name):
 def data_loader(temp_path, nclasses = 10 ):
     if nclasses == 10:
         from datasets import cifar10
-        return cifar10.load_data(temp_path)
-
+        train, test = cifar10.load_data(temp_path)
+        ntrain, ntest = train[0].shape[0], test[0].shape[0]
+        return train, test, ntrain, ntest
 
 def train(train, test,
           num_classes = 10,
