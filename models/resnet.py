@@ -1,6 +1,8 @@
 import re
 import numpy as np
 import os
+import logging
+import math
 
 def compute_depth(n=3,version=1):
     value = 0
@@ -68,7 +70,9 @@ def train(train, test,
           batch_size = 32,
           epochs = 200,
           data_augmentation = True,
-          subtract_pixel_mean = True):
+          subtract_pixel_mean = True,
+          checkpoint_epochs = False,
+          datafraction = 1.):
 
     """setup the resnet and run the train function"""
     #from __future__ import print_function
@@ -82,14 +86,21 @@ def train(train, test,
     from keras.regularizers import l2
     from keras import backend as K
     from keras.models import Model
+    from models.keras_details.callbacks import stopwatch
 
     n = int(n)
     version = int(version)
     depth = compute_depth(n,version)
     model_type = 'ResNet%dv%d' % (depth, version)
 
-    (x_train, y_train) = (train[0],train[-1])
-    (x_test, y_test) = (test[0],test[-1])
+    nsamples_train = int(math.floor(train[0].shape[0]*datafraction))
+    nsamples_test = int(math.floor(test[0].shape[0]*datafraction))
+
+    x_train = train[0][:nsamples_train,...]
+    y_train = train[-1][:nsamples_train,...]
+
+    x_test = test[0][:nsamples_test,...]
+    y_test = test[-1][:nsamples_test,...]
 
     # Input image dimensions.
     input_shape = x_train.shape[1:]
@@ -104,10 +115,10 @@ def train(train, test,
         x_train -= x_train_mean
         x_test -= x_train_mean
 
-    print('x_train shape:', x_train.shape)
-    print(x_train.shape[0], 'train samples')
-    print(x_test.shape[0], 'test samples')
-    print('y_train shape:', y_train.shape)
+    logging.info('x_train shape: %s, %i samples', str(x_train.shape),x_train.shape[0])
+    logging.info('y_train shape: %s, %i samples', str(y_train.shape),y_train.shape[0])
+    logging.info('x_test shape: %s, %i samples', str(x_test.shape),x_test.shape[0])
+    logging.info('y_test shape: %s, %i samples', str(y_test.shape),y_test.shape[0])
 
     # Convert class vectors to binary class matrices.
     y_train = keras.utils.to_categorical(y_train, num_classes)
@@ -364,18 +375,7 @@ def train(train, test,
                   metrics=['accuracy'])
     model.summary()
 
-    # Prepare model model saving directory.
-    save_dir = os.path.join(os.getcwd(), 'saved_models')
-    model_name = 'cifar10_%s_model.{epoch:03d}.h5' % model_type
-    if not os.path.isdir(save_dir):
-        os.makedirs(save_dir)
-    filepath = os.path.join(save_dir, model_name)
 
-    # Prepare callbacks for model saving and for learning rate adjustment.
-    checkpoint = ModelCheckpoint(filepath=filepath,
-                                 monitor='val_acc',
-                                 verbose=1,
-                                 save_best_only=True)
 
     lr_scheduler = LearningRateScheduler(lr_schedule)
 
@@ -384,7 +384,26 @@ def train(train, test,
                                    patience=5,
                                    min_lr=0.5e-6)
 
-    callbacks = [checkpoint, lr_reducer, lr_scheduler]
+    stopw = stopwatch()
+
+    callbacks = [lr_reducer, lr_scheduler, stopw]
+
+    # Prepare model model saving directory.
+    save_dir = os.path.join(os.getcwd(), 'saved_models')
+    model_name = 'cifar10_%s_model.{epoch:03d}.h5' % model_type
+    filepath = os.path.join(save_dir, model_name)
+
+    # Prepare callbacks for model saving and for learning rate adjustment.
+    if checkpoint_epochs:
+        if not os.path.isdir(save_dir):
+            os.makedirs(save_dir)
+
+            checkpoint = ModelCheckpoint(filepath=filepath,
+                                         monitor='val_acc',
+                                         verbose=1,
+                                         save_best_only=True)
+        callbacks.append(checkpoint)
+
     hist = None
     # Run training, with or without data augmentation.
     if not data_augmentation:
@@ -430,6 +449,6 @@ def train(train, test,
                                    epochs=epochs, verbose=1, workers=4,
                                    callbacks=callbacks)
 
-        return hist
+        return hist, stopw
         ## -> extract times and such here
 

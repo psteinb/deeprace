@@ -89,6 +89,9 @@ def main():
     parser.add_argument('-d','--dataset', type=str, default='cifar10',
                         help='specify the dataset to use')
 
+    parser.add_argument('-f','--datafraction', type=float, default=1.,
+                        help='fraction of the dataset to use')
+
     parser.add_argument('-t','--timings', type=str, default="timings.csv",
                         help='file to store the individual timings in')
 
@@ -116,7 +119,10 @@ def main():
     logging.info("loading the data took %f seconds" % ((end-start).total_seconds()))
     logging.info("handing over %s to %s" % (deciphered,args.model[0]))
 
-    hist = loaded.train(train,test,**deciphered)
+    hist, timings = loaded.train(train,test,datafraction=args.datafraction,**deciphered)
+
+    print(hist,dir(hist),hist.history)
+    logging.info("training took (s) %s"," ".join([ str(it) for it in timings.epoch_durations]))
 
     sys.exit(0)
 
