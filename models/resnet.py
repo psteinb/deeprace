@@ -34,6 +34,21 @@ def provides():
 
     return value
 
+def options():
+    """ return a dictionary of options that can be provided to the train method besides the train and test dataset """
+    value = {
+          "num_classes" : 10,
+          "n" : 3,
+          "version" : 1,
+          "batch_size" : 32,
+          "epochs" : 200,
+          "data_augmentation" : True,
+          "subtract_pixel_mean" : True,
+          "checkpoint_epochs" : False
+        }
+    return value
+
+
 def params_from_name(name):
     """ function that extracts a dictionary of parameters from a given name,
     e.g. resnet56v1 would result in { 'n' : XX, 'version' = 1 },

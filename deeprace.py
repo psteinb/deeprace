@@ -103,6 +103,9 @@ def main():
     parser.add_argument('-s','--seperator', type=str, default="\t",
                         help='seperator for the output data')
 
+    parser.add_argument('-c','--comment', type=str, default="",
+                        help='comment to add to dataset (mind the defined seperator)')
+
     args = parser.parse_args()
 
     numeric_level = getattr(logging, args.loglevel.upper(), None)
@@ -116,11 +119,15 @@ def main():
         print("no model specified\navailable:")
         for k,v in models.items():
             logging.info("\t[%s] %s" % (k," ".join(v)))
+            #TODO list available parameters
         sys.exit(1)
 
-    (loaded,deciphered) = load_model(args.model[0])
+    (loaded,opts_from_name) = load_model(args.model[0])
 
+    deciphered = loaded.options()
+    deciphered.update(opts_from_name)
     meta_opts = {}
+
     if args.meta_options:
         meta_opts = dict((k.strip(), v.strip()) for k,v in
                          (item.split('=') for item in args.meta_options.split(',')))
@@ -156,9 +163,9 @@ def main():
         )
 
 
-        csvout.write("runid{sep}load_dur_sec{sep}ntrain{sep}ntest{sep}datafraction{sep}train_start{sep}train_end{sep}epoch{sep}rel_epoch_start_sec{sep}epoch_dur_sec{sep}loss{sep}acc{sep}val_loss{sep}val_acc{sep}opts\n".format(sep=args.seperator))
+        csvout.write("runid{sep}load_dur_sec{sep}ntrain{sep}ntest{sep}datafraction{sep}train_start{sep}train_end{sep}epoch{sep}rel_epoch_start_sec{sep}epoch_dur_sec{sep}loss{sep}acc{sep}val_loss{sep}val_acc{sep}opts{sep}comment\n".format(sep=args.seperator))
         for i in range(len(timings.epoch_durations)):
-            line = "{runid}{sep}{num}{sep}{rel_epoch_start_sec}{sep}{epoch_dur_sec}{sep}{loss}{sep}{acc}{sep}{val_loss}{sep}{val_acc}{sep}{detail}\n".format(
+            line = "{runid}{sep}{num}{sep}{rel_epoch_start_sec}{sep}{epoch_dur_sec}{sep}{loss}{sep}{acc}{sep}{val_loss}{sep}{val_acc}{sep}{detail}{sep}{comment}\n".format(
                 runid=runid,
                 num=i,
                 rel_epoch_start_sec=timings.epoch_start[i],
@@ -168,7 +175,8 @@ def main():
                 val_loss=hist.history['val_loss'][i],
                 val_acc= hist.history['val_acc'][i],
                 detail=opts,
-                sep=args.seperator
+                sep=args.seperator,
+                comment=args.comment
             )
             csvout.write(line)
         csvout.close()
