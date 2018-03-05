@@ -78,6 +78,9 @@ def main():
     parser.add_argument('model', type=str, nargs='*',
                         help='a model descriptor to run (defaul resnet30)')
 
+    parser.add_argument('-O','--meta-options', type=str, default="",
+                        help='meta-options for the training')
+
     parser.add_argument('-D','--datapath', type=str, default="datasets",
                         help='path to store the input data in')
 
@@ -94,8 +97,11 @@ def main():
     parser.add_argument('-f','--datafraction', type=float, default=1.,
                         help='fraction of the dataset to use')
 
-    parser.add_argument('-t','--timings', type=str, default="timings.csv",
+    parser.add_argument('-t','--timings', type=str, default="timings.tsv",
                         help='file to store the individual timings in')
+
+    parser.add_argument('-s','--seperator', type=str, default="\t",
+                        help='seperator for the output data')
 
     args = parser.parse_args()
 
@@ -113,20 +119,30 @@ def main():
         sys.exit(1)
 
     (loaded,deciphered) = load_model(args.model[0])
+
+    meta_opts = {}
+    if args.meta_options:
+        meta_opts = dict((k.strip(), v.strip()) for k,v in
+                         (item.split('=') for item in args.meta_options.split(',')))
+        deciphered.update(meta_opts)
+
     if args.nepochs != 0:
         deciphered["epochs"] = args.nepochs
+
+    opts = ",".join(["{k}={v}".format(k=item[0],v=item[1]) for item in deciphered.items() ])
 
     start = datetime.datetime.now()
     train, test, ntrain, ntest = loaded.data_loader(args.datapath)
     end = datetime.datetime.now()
-    logging.info("loading the data took %f seconds" % ((end-start).total_seconds()))
-    logging.info("handing over %s to %s" % (deciphered,args.model[0]))
+    logging.info("loading the data took %f seconds", ((end-start).total_seconds()))
+    logging.info("running %s", args.model[0])
+    logging.info("hyper-parameters used %s", opts.replace(","," "))
 
     hist, timings = loaded.train(train,test,datafraction=args.datafraction,**deciphered)
 
     with open(args.timings,'w') as csvout:
 
-        runid = "{hostname}-{model}-{dataset},{load_dur_sec},{ntrain},{ntest},{df},{train_start},{train_end}".format(hostname=hname,
+        runid = "{hostname}-{model}-{dataset}{sep}{load_dur_sec}{sep}{ntrain}{sep}{ntest}{sep}{df}{sep}{train_start}{sep}{train_end}".format(hostname=hname,
                                                                                 model=args.model[0],
                                                                                 dataset=args.dataset,
                                                                                 load_dur_sec=(end-start).total_seconds(),
@@ -134,13 +150,15 @@ def main():
                                                                                 ntest=ntest,
                                                                                 df=args.datafraction,
                                                                                 train_start=timings.train_begin.strftime("%Y%m%d:%H%M%S"),
-                                                                                train_end=timings.train_end.strftime("%Y%m%d:%H%M%S")
+                                                                                train_end=timings.train_end.strftime("%Y%m%d:%H%M%S"),
+                                                                                sep=args.seperator
 
         )
 
-        csvout.write("runid,load_dur_sec,ntrain,ntest,datafraction,train_start,train_end,epoch,rel_epoch_start_sec,epoch_dur_sec,loss,acc,val_loss,val_acc,details\n")
+
+        csvout.write("runid{sep}load_dur_sec{sep}ntrain{sep}ntest{sep}datafraction{sep}train_start{sep}train_end{sep}epoch{sep}rel_epoch_start_sec{sep}epoch_dur_sec{sep}loss{sep}acc{sep}val_loss{sep}val_acc{sep}opts\n".format(sep=args.seperator))
         for i in range(len(timings.epoch_durations)):
-            line = "{runid},{num},{rel_epoch_start_sec},{epoch_dur_sec},{loss},{acc},{val_loss},{val_acc},{detail}\n".format(
+            line = "{runid}{sep}{num}{sep}{rel_epoch_start_sec}{sep}{epoch_dur_sec}{sep}{loss}{sep}{acc}{sep}{val_loss}{sep}{val_acc}{sep}{detail}\n".format(
                 runid=runid,
                 num=i,
                 rel_epoch_start_sec=timings.epoch_start[i],
@@ -149,12 +167,14 @@ def main():
                 acc=hist.history['acc'][i],
                 val_loss=hist.history['val_loss'][i],
                 val_acc= hist.history['val_acc'][i],
-                detail="-"
+                detail=opts,
+                sep=args.seperator
             )
             csvout.write(line)
         csvout.close()
         logging.info('wrote %s',args.timings)
 
+    logging.info('Done.')
 
     sys.exit(0)
 

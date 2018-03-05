@@ -3,6 +3,7 @@ import numpy as np
 import os
 import logging
 import math
+from distutils.util import strtobool
 
 def compute_depth(n=3,version=1):
     value = 0
@@ -20,8 +21,6 @@ def name(n=3,version=1):
     value = 'resnet%dv%d' % (compute_depth(n,version), version)
 
     return value
-
-
 
 def provides():
     """ provide a list of strings which denote which models can be provided by this module """
@@ -64,6 +63,20 @@ def data_loader(temp_path, nclasses = 10 ):
         ntrain, ntest = train[0].shape[0], test[0].shape[0]
         return train, test, ntrain, ntest
 
+def options():
+    """ return a dictionary of options that can be provided to the train method besides the train and test dataset """
+    value = {
+          "num_classes" : 10,
+          "n" : 3,
+          "version" : 1,
+          "batch_size" : 32,
+          "epochs" : 200,
+          "data_augmentation" : True,
+          "subtract_pixel_mean" : True,
+          "checkpoint_epochs" : False
+        }
+    return value
+
 def train(train, test,
           num_classes = 10,
           n = 3,
@@ -76,7 +89,7 @@ def train(train, test,
           datafraction = 1.):
 
     """setup the resnet and run the train function"""
-    #from __future__ import print_function
+
     import keras
     from keras.layers import Dense, Conv2D, BatchNormalization, Activation
     from keras.layers import AveragePooling2D, Input, Flatten
@@ -91,8 +104,17 @@ def train(train, test,
 
     n = int(n)
     version = int(version)
+    batch_size=int(batch_size)
+    epochs=int(epochs)
     depth = compute_depth(n,version)
     model_type = 'ResNet%dv%d' % (depth, version)
+
+    if type(data_augmentation) == type(str()):
+        data_augmentation = bool(strtobool(data_augmentation))
+    if type(checkpoint_epochs) == type(str()):
+        checkpoint_epochs = bool(strtobool(checkpoint_epochs))
+    if type(subtract_pixel_mean) == type(str()):
+        subtract_pixel_mean = bool(strtobool(subtract_pixel_mean))
 
     nsamples_train = int(math.floor(train[0].shape[0]*datafraction))
     nsamples_test = int(math.floor(test[0].shape[0]*datafraction))
@@ -408,7 +430,7 @@ def train(train, test,
     hist = None
     # Run training, with or without data augmentation.
     if not data_augmentation:
-        print('Not using data augmentation.')
+        logging.info('Not using data augmentation.')
         hist = model.fit(x_train, y_train,
                          batch_size=batch_size,
                          epochs=epochs,
@@ -416,7 +438,7 @@ def train(train, test,
                          shuffle=True,
                          callbacks=callbacks)
     else:
-        print('Using real-time data augmentation.')
+        logging.info('Using real-time data augmentation.')
         # This will do preprocessing and realtime data augmentation:
         datagen = ImageDataGenerator(
             # set input mean to 0 over the dataset
@@ -450,6 +472,4 @@ def train(train, test,
                                    epochs=epochs, verbose=1, workers=4,
                                    callbacks=callbacks)
 
-        return hist, stopw
-        ## -> extract times and such here
-
+    return hist, stopw
