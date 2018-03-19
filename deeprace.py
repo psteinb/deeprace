@@ -1,4 +1,26 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+usage: deeprace [--version] [--help] <command> [<args>...]
+
+options:
+   -h, --help           Show this help message
+   -v, --version        Print the version of deeprace
+
+The most commonly used git commands are:
+   list      list available models
+   run       run training on a given model
+
+See 'deeprace help <command>' for more information on a specific command.
+"""
+
+from __future__ import unicode_literals, print_function
+from docopt import docopt
+
+__version__ = "0.1.0"
+__author__ = "Peter Steinbach"
+__license__ = "BSD"
+
 import os
 import sys
 import argparse
@@ -9,6 +31,7 @@ import datetime
 import logging
 import socket
 import datetime
+from subprocess import call
 
 if importlib.find_loader:
     finder = importlib.find_loader
@@ -69,6 +92,29 @@ def load_model(descriptor):
 
 
 def main():
+
+    args = docopt(__doc__, version=__version__, options_first=True)
+
+    print('global arguments:')
+    print(args)
+    print('command arguments:')
+
+
+    argv = [args['<command>']] + args['<args>']
+    if args['<command>'] == 'list':
+        import verbs.dr_list
+        print(docopt(verbs.dr_list.__doc__, argv=argv))
+    elif args['<command>'] in ['help', None]:
+
+        if len(args['<args>']) and os.path.exists(os.path.join('verbs','dr_'+args['<args>'][0]+'.py')):
+            verb = importlib.import_module('verbs.dr_'+args['<args>'][0])
+            verb.main()
+        else:
+            exit(call([sys.executable, __file__, '--help']))
+    else:
+        exit("%r is not a deeprace command. See 'git help'." % args['<command>'])
+
+def old_main():
 
     desc = """
     benchmarking tool to run predefined models and print the time per epoch either to the screen or save it to a file
