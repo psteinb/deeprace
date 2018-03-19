@@ -86,20 +86,28 @@ def main():
     if args['--verbose']:
         numeric_level = getattr(logging, 'DEBUG', None)
 
-    logging.basicConfig(level=numeric_level,format=('[%(asctime)-15s '+hname+'] :: %(message)s'),datefmt="%Y-%m-%d %H:%M:%S")
+    logging.basicConfig(level=numeric_level,format=('[%(asctime)-15s '+hname+'] :: %(message)s'),datefmt="%y%m%d %H:%M:%S")
 
+    logging.debug(args)
     argv = [args['<command>']] + args['<args>']
+    logging.debug(argv)
 
     if args['<command>'] == 'list':
         import verbs.dr_list
         list_args = docopt(verbs.dr_list.__doc__, argv=argv)
         sys.exit(verbs.dr_list.print_models())
 
+    elif args['<command>'] == 'run':
+        import verbs.dr_run
+        run_args = docopt(verbs.dr_run.__doc__, argv=argv)
+        logging.info(run_args)
+        sys.exit(verbs.dr_run.run_model(args))
+
     elif args['<command>'] in ['help', None]:
 
         if len(args['<args>']) and os.path.exists(os.path.join('verbs','dr_'+args['<args>'][0]+'.py')):
             verb = importlib.import_module('verbs.dr_'+args['<args>'][0])
-            verb.main()
+            print(verb.__doc__)
         else:
             exit(call([sys.executable, __file__, '--help']))
     else:
