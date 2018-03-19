@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-usage: deeprace [--version] [--help] <command> [<args>...]
+usage: deeprace [--version] [--help] [--verbose] [--loglevel <level>] <command> [<args>...]
 
 options:
-   -h, --help           Show this help message
-   -v, --version        Print the version of deeprace
+   -h, --help                           Show this help message
+   -v, --version                        Print the version of deeprace
+   -V, --verbose                        Run in verbose mode
+   -L <level> --loglevel=<level>        logging level to use [default: info]
 
 The most commonly used git commands are:
    list      list available models
@@ -16,11 +18,6 @@ See 'deeprace help <command>' for more information on a specific command.
 
 from __future__ import unicode_literals, print_function
 from docopt import docopt
-
-__version__ = "0.1.0"
-__author__ = "Peter Steinbach"
-__license__ = "BSD"
-
 import os
 import sys
 import argparse
@@ -33,30 +30,17 @@ import socket
 import datetime
 from subprocess import call
 
+
+__version__ = "0.1.0"
+__author__ = "Peter Steinbach"
+__license__ = "BSD"
+
+
 if importlib.find_loader:
     finder = importlib.find_loader
 elif importlib.utils.find_spec:
     finder = importlib.utils.find_spec
 
-def available_models():
-
-    value = {}
-
-    if not os.path.exists(os.path.join(".","models")):
-        return value
-
-    for it in glob.glob(os.path.join(".","models","*.py")):
-        stem = os.path.split(it)[-1]
-        fname = os.path.splitext(stem)[0]
-        name = "models.%s" % fname
-        ld = finder(name)
-        if ld != None:
-            print("strange, found %s but could find a loader for it" % stem)
-        else:
-            current = importlib.import_module(name)
-            value[fname] = current.provides()
-
-    return value
 
 def import_model(name):
     """ import a model and return the imported symbol """
@@ -95,15 +79,22 @@ def main():
 
     args = docopt(__doc__, version=__version__, options_first=True)
 
-    print('global arguments:')
-    print(args)
-    print('command arguments:')
+    numeric_level = getattr(logging, args['--loglevel'].upper(), None)
+    if not isinstance(numeric_level, int):
+        raise ValueError('Invalid log level: %s' % args['--loglevel'])
+    hname = socket.gethostname().split(".")[0]
+    if args['--verbose']:
+        numeric_level = getattr(logging, 'DEBUG', None)
 
+    logging.basicConfig(level=numeric_level,format=('[%(asctime)-15s '+hname+'] :: %(message)s'),datefmt="%Y-%m-%d %H:%M:%S")
 
     argv = [args['<command>']] + args['<args>']
+
     if args['<command>'] == 'list':
         import verbs.dr_list
-        print(docopt(verbs.dr_list.__doc__, argv=argv))
+        list_args = docopt(verbs.dr_list.__doc__, argv=argv)
+        sys.exit(verbs.dr_list.print_models())
+
     elif args['<command>'] in ['help', None]:
 
         if len(args['<args>']) and os.path.exists(os.path.join('verbs','dr_'+args['<args>'][0]+'.py')):
@@ -112,7 +103,8 @@ def main():
         else:
             exit(call([sys.executable, __file__, '--help']))
     else:
-        exit("%r is not a deeprace command. See 'git help'." % args['<command>'])
+        exit("%r is not a deeprace command. See 'deeprace help'." % args['<command>'])
+
 
 def old_main():
 
