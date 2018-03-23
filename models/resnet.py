@@ -94,6 +94,7 @@ class model(base_model):
 
         """setup the resnet and run the train function"""
 
+        datafraction = float(datafraction)
         if datafraction > 1.0 or datafraction < 0:
             logging.error("resnet :: datafraction can only be [0,1]")
 
@@ -114,12 +115,20 @@ class model(base_model):
         depth = compute_depth(self.n,self.version)
         model_type = 'ResNet%dv%d' % (depth, self.version)
 
-        if type(data_augmentation) == type(str()):
-            data_augmentation = bool(strtobool(data_augmentation))
-        if type(checkpoint_epochs) == type(str()):
-            checkpoint_epochs = bool(strtobool(checkpoint_epochs))
-        if type(subtract_pixel_mean) == type(str()):
-            subtract_pixel_mean = bool(strtobool(subtract_pixel_mean))
+        if type(self.data_augmentation) == type(str()):
+            data_augmentation = bool(strtobool(self.data_augmentation))
+        else:
+            data_augmentation = self.data_augmentation
+
+        if type(self.checkpoint_epochs) == type(str()):
+            checkpoint_epochs = bool(strtobool(self.checkpoint_epochs))
+        else:
+            checkpoint_epochs = self.checkpoint_epochs
+
+        if type(self.subtract_pixel_mean) == type(str()):
+            subtract_pixel_mean = bool(strtobool(self.subtract_pixel_mean))
+        else:
+            subtract_pixel_mean = self.subtract_pixel_mean
 
         nsamples_train = int(math.floor(train[0].shape[0]*datafraction))
         nsamples_test = int(math.floor(test[0].shape[0]*datafraction))
@@ -149,8 +158,8 @@ class model(base_model):
         logging.info('y_test shape: %s, %i samples', str(y_test.shape),y_test.shape[0])
 
         # Convert class vectors to binary class matrices.
-        y_train = keras.utils.to_categorical(y_train, num_classes)
-        y_test = keras.utils.to_categorical(y_test, num_classes)
+        y_train = keras.utils.to_categorical(y_train, self.num_classes)
+        y_test = keras.utils.to_categorical(y_test, self.num_classes)
 
 
         def lr_schedule(epoch):
@@ -393,7 +402,7 @@ class model(base_model):
             return model
 
 
-        if version == 2:
+        if self.version == 2:
             model = resnet_v2(input_shape=input_shape, depth=depth)
         else:
             model = resnet_v1(input_shape=input_shape, depth=depth)

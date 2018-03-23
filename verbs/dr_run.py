@@ -15,15 +15,20 @@ options:
 
 from docopt import docopt
 import os
+import re
 import sys
 import glob
 import importlib
 import logging
+import datetime
 
-if importlib.find_loader:
-    finder = importlib.find_loader
-elif importlib.utils.find_spec:
-    finder = importlib.utils.find_spec
+if importlib.util:
+    import importlib.util
+    finder = importlib.util.find_spec
+else:
+    raise Exception("unable to find importlib.util.find_spec, are you using python 3.4+ ?")
+    # if importlib.find_loader:
+  #   finder = importlib.find_loader
 
 
 def import_model(name):
@@ -36,10 +41,22 @@ def import_model(name):
     if not os.path.exists(expected_location):
         return None
 
-    full_name = "models.%s" % name
-    ld = finder(full_name)
+    try_this = [ "", ".", ".."]
+    full_name = "models.%s" % (name)
+
+    ld = None
+    for it in try_this:
+        ld = finder(full_name, package="%smodels" % it)
+
+        if ld:
+            break
+        else:
+            logging.info("no finder with %s at %8s (cwd: %s)",full_name,it, os.path.abspath(os.curdir))
+
     if ld == None:
-        print("found %s at %s but could find a loader for it" % (name, expected_location))
+        ld = finder(name, path="models")
+
+    if ld == None:
         return None
 
     return importlib.import_module(full_name)
@@ -52,8 +69,11 @@ def load_model(descriptor):
         return None
 
     model_id = model_id_candidates[0]
-    logging.info("importing "+model_id)
+    logging.info("importing %s (from %s)", model_id, descriptor)
     loaded = import_model(model_id)
+    if not loaded:
+        logging.error("unable to load %s inferred from %s",model_id,descriptor)
+        return None
 
     param_dict = loaded.params_from_name(descriptor)
     return (loaded,param_dict)
@@ -61,33 +81,87 @@ def load_model(descriptor):
 
 def run_model(args):
 
-    logging.info("dr_run received %s",args)
-    (loaded,opts_from_name) = load_model(args.model[0])
+    logging.debug("received %s as args",args)
 
-    deciphered = loaded.options()
+    if not "<models>" in args.keys():
+        logging.error("no model recieved")
+        return 1
+
+    modelname = args["<models>"]
+    #logging.info("loading %s",modelname)
+    (loaded,opts_from_name) = load_model(modelname)
+
+    model = loaded.model()
+    deciphered = model.options()
+
+    logging.info("successfully imported %s",modelname)
+
     deciphered.update(opts_from_name)
     meta_opts = {}
 
-    if args.meta_options:
+    if "--meta-options" in args.keys() and args["--meta-options"]:
         meta_opts = dict((k.strip(), v.strip()) for k,v in
-                         (item.split('=') for item in args.meta_options.split(',')))
+                         (item.split('=') for item in args["--meta-options"].split(',')))
         deciphered.update(meta_opts)
 
-    if args.nepochs != 0:
-        deciphered["epochs"] = args.nepochs
+    if ("--nepochs") in args.keys():
+        deciphered["epochs"] = int(args["--nepochs"])
 
     opts = ",".join(["{k}={v}".format(k=item[0],v=item[1]) for item in deciphered.items() ])
 
     start = datetime.datetime.now()
-    train, test, ntrain, ntest = loaded.data_loader(args.datapath)
+    train, test, ntrain, ntest = model.data_loader(args["--datapath"])
     end = datetime.datetime.now()
     logging.info("loading the data took %f seconds", ((end-start).total_seconds()))
-    logging.info("running %s", args.model[0])
+    logging.info("running %s", modelname)
     logging.info("hyper-parameters used %s", opts.replace(","," "))
 
-    hist, timings = loaded.train(train,test,datafraction=args.datafraction,**deciphered)
+    #update dictionary here
+    d2 = model.options()
+    d3 = {key:d2[key] for key in deciphered if key in d2}
+    if d3.keys() == deciphered.keys():
+        model.__dict__ = deciphered
+    else:
+        logging.error("options received (%s) do not match supported options (%s)",deciphered.keys(),d2.keys())
 
-    return hist, timings
+    hist, timings = model.train(train,test,datafraction=args["--datafraction"])
+    with open(args.timings,'w') as csvout:
+        runid = "{hostname}{sep}{model}{sep}{dataset}{sep}{load_dur_sec}{sep}{ntrain}{sep}{ntest}{sep}{df}{sep}{train_start}{sep}{train_end}".format(hostname=hname,
+                                                                                                                                                         model=modelname,
+                  dataset=args["--dataset"],
+                  load_dur_sec=(end-start).total_seconds(),
+                  ntrain=ntrain,
+                  ntest=ntest,
+                  df=args["--datafraction"],
+                  train_start=timings.train_begin.strftime("%Y%m%d:%H%M%S"),
+                  train_end=timings.train_end.strftime("%Y%m%d:%H%M%S"),
+                  sep=args.seperator
+
+        )
+
+        csvout.write("host{sep}model{sep}dataset{sep}load_dur_sec{sep}ntrain{sep}ntest{sep}datafraction{sep}train_start{sep}train_end{sep}epoch{sep}rel_epoch_start_sec{sep}epoch_dur_sec{sep}loss{sep}acc{sep}val_loss{sep}val_acc{sep}opts{sep}comment\n".format(sep=args.seperator))
+        for i in range(len(timings.epoch_durations)):
+            line = "{constant}{sep}{num}{sep}{rel_epoch_start_sec}{sep}{epoch_dur_sec}{sep}{loss}{sep}{acc}{sep}{val_loss}{sep}{val_acc}{sep}{detail}{sep}{comment}\n".format(
+                constant=runid,
+                num=i,
+                rel_epoch_start_sec=timings.epoch_start[i],
+                epoch_dur_sec=timings.epoch_durations[i],
+                loss=hist.history['loss'][i],
+                acc=hist.history['acc'][i],
+                val_loss=hist.history['val_loss'][i],
+                val_acc= hist.history['val_acc'][i],
+                detail=opts,
+                sep=args.seperator,
+                comment=args.comment
+            )
+            csvout.write(line)
+
+        csvout.close()
+        logging.info('wrote %s',args.timings)
+
+    logging.info('Done.')
+
+    return 0
 
 def main():
 
