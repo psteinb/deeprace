@@ -26,12 +26,6 @@ elif importlib.utils.find_spec:
     finder = importlib.utils.find_spec
 
 
-if importlib.find_loader:
-    finder = importlib.find_loader
-elif importlib.utils.find_spec:
-    finder = importlib.utils.find_spec
-
-
 def import_model(name):
     """ import a model and return the imported symbol """
 
@@ -93,44 +87,7 @@ def run_model(args):
 
     hist, timings = loaded.train(train,test,datafraction=args.datafraction,**deciphered)
 
-    with open(args.timings,'w') as csvout:
-
-        runid = "{hostname}-{model}-{dataset}{sep}{load_dur_sec}{sep}{ntrain}{sep}{ntest}{sep}{df}{sep}{train_start}{sep}{train_end}".format(hostname=hname,
-                                                                                model=args.model[0],
-                                                                                dataset=args.dataset,
-                                                                                load_dur_sec=(end-start).total_seconds(),
-                                                                                ntrain=ntrain,
-                                                                                ntest=ntest,
-                                                                                df=args.datafraction,
-                                                                                train_start=timings.train_begin.strftime("%Y%m%d:%H%M%S"),
-                                                                                train_end=timings.train_end.strftime("%Y%m%d:%H%M%S"),
-                                                                                sep=args.seperator
-
-        )
-
-
-        csvout.write("runid{sep}load_dur_sec{sep}ntrain{sep}ntest{sep}datafraction{sep}train_start{sep}train_end{sep}epoch{sep}rel_epoch_start_sec{sep}epoch_dur_sec{sep}loss{sep}acc{sep}val_loss{sep}val_acc{sep}opts{sep}comment\n".format(sep=args.seperator))
-        for i in range(len(timings.epoch_durations)):
-            line = "{runid}{sep}{num}{sep}{rel_epoch_start_sec}{sep}{epoch_dur_sec}{sep}{loss}{sep}{acc}{sep}{val_loss}{sep}{val_acc}{sep}{detail}{sep}{comment}\n".format(
-                runid=runid,
-                num=i,
-                rel_epoch_start_sec=timings.epoch_start[i],
-                epoch_dur_sec=timings.epoch_durations[i],
-                loss=hist.history['loss'][i],
-                acc=hist.history['acc'][i],
-                val_loss=hist.history['val_loss'][i],
-                val_acc= hist.history['val_acc'][i],
-                detail=opts,
-                sep=args.seperator,
-                comment=args.comment
-            )
-            csvout.write(line)
-        csvout.close()
-        logging.info('wrote %s',args.timings)
-
-    logging.info('Done.')
-
-    sys.exit(0)
+    return hist, timings
 
 def main():
 
