@@ -24,11 +24,12 @@ import logging
 import datetime
 import socket
 
-if importlib.util:
-    import importlib.util
-    finder = importlib.util.find_spec
+try:
+    from importlib import util as ilib_util
+except:
+    raise
 else:
-    raise Exception("unable to find importlib.util.find_spec, are you using python 3.4+ ?")
+    finder = ilib_util.find_spec
 
 def import_model(name):
     """ import a model and return the imported symbol """
