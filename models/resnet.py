@@ -130,6 +130,9 @@ class model(base_model):
         else:
             subtract_pixel_mean = self.subtract_pixel_mean
 
+        logging.info("received options: %s", self.__dict__)
+        logging.info("%s (%i epochs):: batch_size = %i, depth = %i, data_augmentation/checkpoint/subtract_pixel_mean %i/%i/%i", model_type, epochs,batch_size,depth,data_augmentation,checkpoint_epochs,subtract_pixel_mean)
+
         nsamples_train = int(math.floor(train[0].shape[0]*datafraction))
         nsamples_test = int(math.floor(test[0].shape[0]*datafraction))
 
