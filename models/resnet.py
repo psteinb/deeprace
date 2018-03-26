@@ -27,8 +27,8 @@ def name(n=3,version=1):
 
 def params_from_name(name):
     """ function that extracts a dictionary of parameters from a given name,
-    e.g. resnet56v1 would result in { 'n' : XX, 'version' = 1 },
-    this is the inversoe of the name function
+    e.g. resnet56v1 would result in { 'n' : 9, 'version' = 1 },
+    this is the inverse of the 'name' function
     """
 
     found = re.findall('\d+',name)
@@ -51,7 +51,7 @@ class model(base_model):
 
     def __init__(self):
         self.num_classes =10
-        self.n =3
+        self.n = 5
         self.version =1
         self.batch_size =32
         self.epochs =200
@@ -112,6 +112,10 @@ class model(base_model):
 
         batch_size=self.batch_size
         epochs=self.epochs
+        if epochs <= 0:
+            epochs = 200
+            self.epochs = epochs
+
         depth = compute_depth(self.n,self.version)
         model_type = 'ResNet%dv%d' % (depth, self.version)
 
@@ -269,6 +273,8 @@ class model(base_model):
             num_filters = 16
             num_res_blocks = int((depth - 2) / 6)
 
+            print(">> resnet_v1 %i depth, %i classes" % (depth,num_classes))
+
             inputs = Input(shape=input_shape)
             x = resnet_layer(inputs=inputs)
             # Instantiate the stack of residual units
@@ -277,10 +283,10 @@ class model(base_model):
                     strides = 1
                     if stack > 0 and res_block == 0:  # first layer but not first stack
                         strides = 2  # downsample
-                        y = resnet_layer(inputs=x,
+                    y = resnet_layer(inputs=x,
                                          num_filters=num_filters,
                                          strides=strides)
-                        y = resnet_layer(inputs=y,
+                    y = resnet_layer(inputs=y,
                                          num_filters=num_filters,
                                          activation=None)
                     if stack > 0 and res_block == 0:  # first layer but not first stack
@@ -292,9 +298,9 @@ class model(base_model):
                                          strides=strides,
                                          activation=None,
                                          batch_normalization=False)
-                        x = keras.layers.add([x, y])
-                        x = Activation('relu')(x)
-                        num_filters *= 2
+                    x = keras.layers.add([x, y])
+                    x = Activation('relu')(x)
+                num_filters *= 2
 
             # Add classifier on top.
             # v1 does not use BN after last shortcut connection-ReLU
@@ -339,6 +345,8 @@ class model(base_model):
             # Start model definition.
             num_filters_in = 16
             num_res_blocks = int((depth - 2) / 9)
+
+            print(">> resnet_v2 %i depth, %i classes" % (depth,num_classes))
 
             inputs = Input(shape=input_shape)
             # v2 performs Conv2D with BN-ReLU on input before splitting into 2 paths
@@ -386,7 +394,7 @@ class model(base_model):
                                          strides=strides,
                                          activation=None,
                                          batch_normalization=False)
-                        x = keras.layers.add([x, y])
+                    x = keras.layers.add([x, y])
 
                 num_filters_in = num_filters_out
 
