@@ -3,6 +3,7 @@ import numpy as np
 import os
 import logging
 import math
+import time
 
 from distutils.util import strtobool
 from .base import base_model
@@ -58,7 +59,7 @@ class model(base_model):
         self.data_augmentation =True
         self.subtract_pixel_mean =True
         self.checkpoint_epochs =False
-
+        self.scratchspace = os.getcwd()
 
     def provides(self):
         """ provide a list of strings which denote which models can be provided by this module """
@@ -109,6 +110,7 @@ class model(base_model):
         from keras import backend as K
         from keras.models import Model
         from models.keras_details.callbacks import stopwatch
+        from models.keras_details.model_utils import model_size
 
         batch_size=self.batch_size
         epochs=self.epochs
@@ -273,7 +275,6 @@ class model(base_model):
             num_filters = 16
             num_res_blocks = int((depth - 2) / 6)
 
-            print(">> resnet_v1 %i depth, %i classes" % (depth,num_classes))
 
             inputs = Input(shape=input_shape)
             x = resnet_layer(inputs=inputs)
@@ -345,8 +346,6 @@ class model(base_model):
             # Start model definition.
             num_filters_in = 16
             num_res_blocks = int((depth - 2) / 9)
-
-            print(">> resnet_v2 %i depth, %i classes" % (depth,num_classes))
 
             inputs = Input(shape=input_shape)
             # v2 performs Conv2D with BN-ReLU on input before splitting into 2 paths
@@ -437,7 +436,7 @@ class model(base_model):
         callbacks = [lr_reducer, lr_scheduler, stopw]
 
         # Prepare model model saving directory.
-        save_dir = os.path.join(os.getcwd(), 'saved_models')
+        save_dir = os.path.join(self.scratchspace, 'saved_models')
         model_name = 'cifar10_%s_model.{epoch:03d}.h5' % model_type
         filepath = os.path.join(save_dir, model_name)
 
@@ -497,4 +496,11 @@ class model(base_model):
                                        epochs=epochs, verbose=1, workers=4,
                                        callbacks=callbacks)
 
-        return hist, stopw
+        weights_fname = "{date}_{finishtime}_deeprace_{modeldescr}_finalweights.h5".format(date=time.strftime("%Y%m%d"),
+                                                                                           finishtime=time.strftime("%H%M%S"),
+                                                                                           modeldescr=model_type)
+
+        model.save_weights(os.path.join(self.scratchspace,weights_fname))
+
+
+        return hist, stopw, { 'num_weights' : model_size(model) }
