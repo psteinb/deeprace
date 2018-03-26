@@ -21,6 +21,7 @@ import glob
 import importlib
 import logging
 import datetime
+import socket
 
 if importlib.util:
     import importlib.util
@@ -114,7 +115,6 @@ def run_model(args):
     end = datetime.datetime.now()
     logging.info("loading the data took %f seconds", ((end-start).total_seconds()))
     logging.info("running %s", modelname)
-    logging.info("hyper-parameters used %s", opts.replace(","," "))
 
     #update dictionary here
     d2 = model.options()
@@ -124,8 +124,9 @@ def run_model(args):
     else:
         logging.error("options received (%s) do not match supported options (%s)",deciphered.keys(),d2.keys())
 
+    hname = socket.getfqdn().split(".")[0]
     hist, timings = model.train(train,test,datafraction=args["--datafraction"])
-    with open(args.timings,'w') as csvout:
+    with open(args["--timings"],'w') as csvout:
         runid = "{hostname}{sep}{model}{sep}{dataset}{sep}{load_dur_sec}{sep}{ntrain}{sep}{ntest}{sep}{df}{sep}{train_start}{sep}{train_end}".format(hostname=hname,
                                                                                                                                                          model=modelname,
                   dataset=args["--dataset"],
@@ -135,11 +136,11 @@ def run_model(args):
                   df=args["--datafraction"],
                   train_start=timings.train_begin.strftime("%Y%m%d:%H%M%S"),
                   train_end=timings.train_end.strftime("%Y%m%d:%H%M%S"),
-                  sep=args.seperator
+                  sep=args["--separator"]
 
         )
 
-        csvout.write("host{sep}model{sep}dataset{sep}load_dur_sec{sep}ntrain{sep}ntest{sep}datafraction{sep}train_start{sep}train_end{sep}epoch{sep}rel_epoch_start_sec{sep}epoch_dur_sec{sep}loss{sep}acc{sep}val_loss{sep}val_acc{sep}opts{sep}comment\n".format(sep=args.seperator))
+        csvout.write("host{sep}model{sep}dataset{sep}load_dur_sec{sep}ntrain{sep}ntest{sep}datafraction{sep}train_start{sep}train_end{sep}epoch{sep}rel_epoch_start_sec{sep}epoch_dur_sec{sep}loss{sep}acc{sep}val_loss{sep}val_acc{sep}opts{sep}comment\n".format(sep=args["--separator"]))
         for i in range(len(timings.epoch_durations)):
             line = "{constant}{sep}{num}{sep}{rel_epoch_start_sec}{sep}{epoch_dur_sec}{sep}{loss}{sep}{acc}{sep}{val_loss}{sep}{val_acc}{sep}{detail}{sep}{comment}\n".format(
                 constant=runid,
@@ -151,13 +152,13 @@ def run_model(args):
                 val_loss=hist.history['val_loss'][i],
                 val_acc= hist.history['val_acc'][i],
                 detail=opts,
-                sep=args.seperator,
-                comment=args.comment
+                sep=args["--separator"],
+                comment=args["--comment"]
             )
             csvout.write(line)
 
         csvout.close()
-        logging.info('wrote %s',args.timings)
+        logging.info('wrote %s',args["--timings"])
 
     logging.info('Done.')
 
