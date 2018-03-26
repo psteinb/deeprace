@@ -112,8 +112,8 @@ class model(base_model):
         from models.keras_details.callbacks import stopwatch
         from models.keras_details.model_utils import model_size
 
-        batch_size=self.batch_size
-        epochs=self.epochs
+        batch_size=int(self.batch_size)
+        epochs=int(self.epochs)
         if epochs <= 0:
             epochs = 200
             self.epochs = epochs
