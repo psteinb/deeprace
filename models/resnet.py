@@ -42,7 +42,7 @@ def params_from_name(name):
     version = value['version']
     if version == 1:
         value['n'] = (depth - 2)//6
-    if version == 1:
+    if version == 2:
         value['n'] = (depth - 2)//9
 
     return value
