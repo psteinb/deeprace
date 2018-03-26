@@ -512,16 +512,16 @@ class model(base_model):
         value = "keras:{kver},backend:{bname}".format(kver=keras.__version__,bname=K.backend())
 
         if K.tf:
-            value += ":" + tf.__version__
-
+            value += ":" + K.tf.__version__
+        else:
         #the following is untested!
-        try:
-            if K.th:
-                value += ":" + th.__version__
-
-            if K.cntk:
-                value += ":" + cntk.__version__
-        except:
-            value += ":???"
+            try:
+                if K.th:
+                    value += ":" + K.th.__version__
+                else:
+                    if K.cntk:
+                        value += ":" + K.cntk.__version__
+            except:
+                value += ":???"
 
         return value
