@@ -3,6 +3,7 @@ import numpy as np
 import os
 import logging
 import math
+import time
 
 from distutils.util import strtobool
 from .base import base_model
@@ -27,8 +28,8 @@ def name(n=3,version=1):
 
 def params_from_name(name):
     """ function that extracts a dictionary of parameters from a given name,
-    e.g. resnet56v1 would result in { 'n' : XX, 'version' = 1 },
-    this is the inversoe of the name function
+    e.g. resnet56v1 would result in { 'n' : 9, 'version' = 1 },
+    this is the inverse of the 'name' function
     """
 
     found = re.findall('\d+',name)
@@ -42,7 +43,7 @@ def params_from_name(name):
     version = value['version']
     if version == 1:
         value['n'] = (depth - 2)//6
-    if version == 1:
+    if version == 2:
         value['n'] = (depth - 2)//9
 
     return value
@@ -51,14 +52,14 @@ class model(base_model):
 
     def __init__(self):
         self.num_classes =10
-        self.n =3
+        self.n = 5
         self.version =1
         self.batch_size =32
         self.epochs =200
         self.data_augmentation =True
         self.subtract_pixel_mean =True
         self.checkpoint_epochs =False
-
+        self.scratchspace = os.getcwd()
 
     def provides(self):
         """ provide a list of strings which denote which models can be provided by this module """
@@ -109,9 +110,14 @@ class model(base_model):
         from keras import backend as K
         from keras.models import Model
         from models.keras_details.callbacks import stopwatch
+        from models.keras_details.model_utils import model_size
 
         batch_size=self.batch_size
         epochs=self.epochs
+        if epochs <= 0:
+            epochs = 200
+            self.epochs = epochs
+
         depth = compute_depth(self.n,self.version)
         model_type = 'ResNet%dv%d' % (depth, self.version)
 
@@ -129,6 +135,9 @@ class model(base_model):
             subtract_pixel_mean = bool(strtobool(self.subtract_pixel_mean))
         else:
             subtract_pixel_mean = self.subtract_pixel_mean
+
+        logging.info("received options: %s", self.__dict__)
+        logging.info("%s (%i epochs):: batch_size = %i, depth = %i, data_augmentation/checkpoint/subtract_pixel_mean %i/%i/%i", model_type, epochs,batch_size,depth,data_augmentation,checkpoint_epochs,subtract_pixel_mean)
 
         nsamples_train = int(math.floor(train[0].shape[0]*datafraction))
         nsamples_test = int(math.floor(test[0].shape[0]*datafraction))
@@ -266,6 +275,7 @@ class model(base_model):
             num_filters = 16
             num_res_blocks = int((depth - 2) / 6)
 
+
             inputs = Input(shape=input_shape)
             x = resnet_layer(inputs=inputs)
             # Instantiate the stack of residual units
@@ -274,10 +284,10 @@ class model(base_model):
                     strides = 1
                     if stack > 0 and res_block == 0:  # first layer but not first stack
                         strides = 2  # downsample
-                        y = resnet_layer(inputs=x,
+                    y = resnet_layer(inputs=x,
                                          num_filters=num_filters,
                                          strides=strides)
-                        y = resnet_layer(inputs=y,
+                    y = resnet_layer(inputs=y,
                                          num_filters=num_filters,
                                          activation=None)
                     if stack > 0 and res_block == 0:  # first layer but not first stack
@@ -289,9 +299,9 @@ class model(base_model):
                                          strides=strides,
                                          activation=None,
                                          batch_normalization=False)
-                        x = keras.layers.add([x, y])
-                        x = Activation('relu')(x)
-                        num_filters *= 2
+                    x = keras.layers.add([x, y])
+                    x = Activation('relu')(x)
+                num_filters *= 2
 
             # Add classifier on top.
             # v1 does not use BN after last shortcut connection-ReLU
@@ -383,7 +393,7 @@ class model(base_model):
                                          strides=strides,
                                          activation=None,
                                          batch_normalization=False)
-                        x = keras.layers.add([x, y])
+                    x = keras.layers.add([x, y])
 
                 num_filters_in = num_filters_out
 
@@ -426,7 +436,7 @@ class model(base_model):
         callbacks = [lr_reducer, lr_scheduler, stopw]
 
         # Prepare model model saving directory.
-        save_dir = os.path.join(os.getcwd(), 'saved_models')
+        save_dir = os.path.join(self.scratchspace, 'saved_models')
         model_name = 'cifar10_%s_model.{epoch:03d}.h5' % model_type
         filepath = os.path.join(save_dir, model_name)
 
@@ -486,4 +496,32 @@ class model(base_model):
                                        epochs=epochs, verbose=1, workers=4,
                                        callbacks=callbacks)
 
-        return hist, stopw
+        weights_fname = "{date}_{finishtime}_deeprace_{modeldescr}_finalweights.h5".format(date=time.strftime("%Y%m%d"),
+                                                                                           finishtime=time.strftime("%H%M%S"),
+                                                                                           modeldescr=model_type)
+
+        model.save_weights(os.path.join(self.scratchspace,weights_fname))
+
+
+        return hist, stopw, { 'num_weights' : model_size(model) }
+
+    def versions(self):
+        import keras
+        from keras import backend as K
+
+        value = "keras:{kver},backend:{bname}".format(kver=keras.__version__,bname=K.backend())
+
+        if K.tf:
+            value += ":" + K.tf.__version__
+        else:
+        #the following is untested!
+            try:
+                if K.th:
+                    value += ":" + K.th.__version__
+                else:
+                    if K.cntk:
+                        value += ":" + K.cntk.__version__
+            except:
+                value += ":???"
+
+        return value

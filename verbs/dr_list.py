@@ -12,10 +12,11 @@ import glob
 import importlib
 import logging
 
-if importlib.find_loader:
-    finder = importlib.find_loader
-elif importlib.utils.find_spec:
-    finder = importlib.utils.find_spec
+if importlib.util:
+    import importlib.util
+    finder = importlib.util.find_spec
+else:
+    raise Exception("unable to find importlib.util.find_spec, are you using python 3.4+ ?")
 
 def available_models():
 
@@ -31,15 +32,20 @@ def available_models():
 
     found_model_files = glob.glob(os.path.join(basepath,"models","*.py"))
     for it in found_model_files:
-        stem = os.path.split(it)[-1]
-        fname = os.path.splitext(stem)[0]
-        name = "models.%s" % (fname)
-        ld = finder(name)
+        fname = os.path.split(it)[-1]
+        modelstem = os.path.splitext(fname)[0]
+
+        if "base" in modelstem:
+            continue
+
+        name = "models.%s" % (modelstem)
+        ld = finder(modelstem, package="models")
         if ld != None:
-            logging.warning("found %s but could not find a loader for it" % stem)
+            logging.warning("found %s but could not find a loader for it" % fname)
         else:
             current = importlib.import_module(name)
-            value[fname] = current.provides()
+            m = current.model()
+            value[modelstem] = m.provides()
 
     return value
 

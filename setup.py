@@ -10,15 +10,18 @@ REQUIRES = [
 ]
 
 class PyTest(TestCommand):
-    def finalize_options(self):
-        TestCommand.finalize_options(self)
-        self.test_args = []
-        self.test_suite = True
+    user_options = [('pytest-args=', 'a', "Arguments to pass to pytest")]
+
+    def initialize_options(self):
+        TestCommand.initialize_options(self)
+        self.pytest_args = ''
 
     def run_tests(self):
+        import shlex
+        #import here, cause outside the eggs aren't loaded
         import pytest
-        errcode = pytest.main(self.test_args)
-        sys.exit(errcode)
+        errno = pytest.main(shlex.split(self.pytest_args))
+        sys.exit(errno)
 
 
 def find_version(fname):
@@ -71,7 +74,7 @@ setup(
         'Programming Language :: Python :: Implementation :: CPython',
         'Programming Language :: Python :: Implementation :: PyPy'
     ],
-    py_modules=["deeprace", "models", "datasets"],
+    py_modules=["deeprace", "models", "datasets", "verbs"],
     entry_points={
         'console_scripts': [
             "deeprace = deeprace:main"

@@ -4,7 +4,8 @@ usage: deeprace run [options] [--] <models>
 options:
     -h, --help                                 print this help message
     -O <mopts> --meta-options=<mopts>          hyper-parameters for training, e.g. batch_size
-    -D <dpath> --datapath=<dpath>              path used for temporary storage, e.g. for the input data, checkpoints etc [default: datasets ]
+    -D <dpath> --datapath=<dpath>              path used for temporary storage, e.g. for the input data, checkpoints etc [default: datasets]
+    -R <rpath> --resultspath=<rpath>           path to store results or checkpoints [default: deeprace-results]
     -e <neps> --nepochs=<neps>                 number of epochs to train [default: 0]
     -d <ds> --dataset=<ds>                     the dataset to use [default: cifar10]
     -f <dfrac> --datafraction=<dfrac>          fraction of the dataset to use, helpful for debugging/testing [default: 1.]
@@ -21,15 +22,14 @@ import glob
 import importlib
 import logging
 import datetime
+import socket
 
-if importlib.util:
-    import importlib.util
-    finder = importlib.util.find_spec
+try:
+    from importlib import util as ilib_util
+except:
+    raise
 else:
-    raise Exception("unable to find importlib.util.find_spec, are you using python 3.4+ ?")
-    # if importlib.find_loader:
-  #   finder = importlib.find_loader
-
+    finder = ilib_util.find_spec
 
 def import_model(name):
     """ import a model and return the imported symbol """
@@ -114,7 +114,6 @@ def run_model(args):
     end = datetime.datetime.now()
     logging.info("loading the data took %f seconds", ((end-start).total_seconds()))
     logging.info("running %s", modelname)
-    logging.info("hyper-parameters used %s", opts.replace(","," "))
 
     #update dictionary here
     d2 = model.options()
@@ -124,8 +123,15 @@ def run_model(args):
     else:
         logging.error("options received (%s) do not match supported options (%s)",deciphered.keys(),d2.keys())
 
-    hist, timings = model.train(train,test,datafraction=args["--datafraction"])
-    with open(args.timings,'w') as csvout:
+    if not os.path.exists(args["--resultspath"]):
+        os.makedirs(args["--resultspath"])
+
+    model.scratchspace = args["--resultspath"]
+
+    hname = socket.getfqdn().split(".")[0]
+    hist, timings, details = model.train(train,test,datafraction=args["--datafraction"])
+    with open(args["--timings"],'w') as csvout:
+
         runid = "{hostname}{sep}{model}{sep}{dataset}{sep}{load_dur_sec}{sep}{ntrain}{sep}{ntest}{sep}{df}{sep}{train_start}{sep}{train_end}".format(hostname=hname,
                                                                                                                                                          model=modelname,
                   dataset=args["--dataset"],
@@ -135,13 +141,13 @@ def run_model(args):
                   df=args["--datafraction"],
                   train_start=timings.train_begin.strftime("%Y%m%d:%H%M%S"),
                   train_end=timings.train_end.strftime("%Y%m%d:%H%M%S"),
-                  sep=args.seperator
+                  sep=args["--separator"]
 
         )
 
-        csvout.write("host{sep}model{sep}dataset{sep}load_dur_sec{sep}ntrain{sep}ntest{sep}datafraction{sep}train_start{sep}train_end{sep}epoch{sep}rel_epoch_start_sec{sep}epoch_dur_sec{sep}loss{sep}acc{sep}val_loss{sep}val_acc{sep}opts{sep}comment\n".format(sep=args.seperator))
+        csvout.write("host{sep}model{sep}dataset{sep}load_dur_sec{sep}ntrain{sep}ntest{sep}datafraction{sep}train_start{sep}train_end{sep}epoch{sep}rel_epoch_start_sec{sep}epoch_dur_sec{sep}loss{sep}acc{sep}val_loss{sep}val_acc{sep}opts{sep}n_model_params{sep}versions{sep}comment\n".format(sep=args["--separator"]))
         for i in range(len(timings.epoch_durations)):
-            line = "{constant}{sep}{num}{sep}{rel_epoch_start_sec}{sep}{epoch_dur_sec}{sep}{loss}{sep}{acc}{sep}{val_loss}{sep}{val_acc}{sep}{detail}{sep}{comment}\n".format(
+            line = "{constant}{sep}{num}{sep}{rel_epoch_start_sec}{sep}{epoch_dur_sec}{sep}{loss}{sep}{acc}{sep}{val_loss}{sep}{val_acc}{sep}{detail}{sep}{n_model_params}{sep}{versions}{sep}{comment}\n".format(
                 constant=runid,
                 num=i,
                 rel_epoch_start_sec=timings.epoch_start[i],
@@ -151,13 +157,15 @@ def run_model(args):
                 val_loss=hist.history['val_loss'][i],
                 val_acc= hist.history['val_acc'][i],
                 detail=opts,
-                sep=args.seperator,
-                comment=args.comment
+                sep=args["--separator"],
+                n_model_params=details['num_weights'],
+                versions=model.versions(),
+                comment=args["--comment"]
             )
             csvout.write(line)
 
         csvout.close()
-        logging.info('wrote %s',args.timings)
+        logging.info('wrote %s',args["--timings"])
 
     logging.info('Done.')
 
