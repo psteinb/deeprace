@@ -6,6 +6,11 @@ class base_model(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def provides():
+        """ return a string that describes backend versions etc """
+        pass
+
+    @abc.abstractmethod
+    def provides():
         """ provide a list of strings which denote which models can be provided by this module """
         pass
 

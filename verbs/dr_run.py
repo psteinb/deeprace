@@ -145,9 +145,9 @@ def run_model(args):
 
         )
 
-        csvout.write("host{sep}model{sep}dataset{sep}load_dur_sec{sep}ntrain{sep}ntest{sep}datafraction{sep}train_start{sep}train_end{sep}epoch{sep}rel_epoch_start_sec{sep}epoch_dur_sec{sep}loss{sep}acc{sep}val_loss{sep}val_acc{sep}opts{sep}n_model_params{sep}comment\n".format(sep=args["--separator"]))
+        csvout.write("host{sep}model{sep}dataset{sep}load_dur_sec{sep}ntrain{sep}ntest{sep}datafraction{sep}train_start{sep}train_end{sep}epoch{sep}rel_epoch_start_sec{sep}epoch_dur_sec{sep}loss{sep}acc{sep}val_loss{sep}val_acc{sep}opts{sep}n_model_params{sep}versions{sep}comment\n".format(sep=args["--separator"]))
         for i in range(len(timings.epoch_durations)):
-            line = "{constant}{sep}{num}{sep}{rel_epoch_start_sec}{sep}{epoch_dur_sec}{sep}{loss}{sep}{acc}{sep}{val_loss}{sep}{val_acc}{sep}{detail}{sep}{n_model_params}{sep}{comment}\n".format(
+            line = "{constant}{sep}{num}{sep}{rel_epoch_start_sec}{sep}{epoch_dur_sec}{sep}{loss}{sep}{acc}{sep}{val_loss}{sep}{val_acc}{sep}{detail}{sep}{n_model_params}{sep}{versions}{sep}{comment}\n".format(
                 constant=runid,
                 num=i,
                 rel_epoch_start_sec=timings.epoch_start[i],
@@ -159,6 +159,7 @@ def run_model(args):
                 detail=opts,
                 sep=args["--separator"],
                 n_model_params=details['num_weights'],
+                versions=model.versions(),
                 comment=args["--comment"]
             )
             csvout.write(line)

@@ -504,3 +504,24 @@ class model(base_model):
 
 
         return hist, stopw, { 'num_weights' : model_size(model) }
+
+    def versions(self):
+        import keras
+        from keras import backend as K
+
+        value = "keras:{kver},backend:{bname}".format(kver=keras.__version__,bname=K.backend())
+
+        if K.tf:
+            value += ":" + tf.__version__
+
+        #the following is untested!
+        try:
+            if K.th:
+                value += ":" + th.__version__
+
+            if K.cntk:
+                value += ":" + cntk.__version__
+        except:
+            value += ":???"
+
+        return value
