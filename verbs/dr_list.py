@@ -12,7 +12,7 @@ import glob
 import importlib
 import logging
 
-if importlib.util:
+if importlib:
     import importlib.util
     finder = importlib.util.find_spec
 else:
