@@ -1,43 +1,52 @@
 # DeepRace
 
-A small python3 based benchmark tool to compare keras Deep Learning Models.
+A small python3 based benchmark tool to compare ([Keras](keras.io)) Deep Learning Models. This project is currently under development. Please expect the usage to change without prior notice.
 
-## Usage (WIP)
-
-``` bash
-$ deeprace -g 1 -m resnet30 -o timings.csv -e -1
-```
-
-The above starts to train the `resnet30` network on one GPU using the currently configured keras backend, loops through all epochs `-e -1` and writes the measurements to `timings.csv`.
+## Usage 
 
 Current features are:
 
 ``` bash
-python ./deeprace.py -h
-usage: deeprace.py [-h] [-D DATAPATH] [-L LOGLEVEL] [-e NEPOCHS] [-d DATASET]
-                   [-f DATAFRACTION] [-t TIMINGS]
-                   [model [model ...]]
+$ python3 ./deeprace.py --help
+usage: deeprace [--version] [--help] [--verbose] [--loglevel <level>] <command> [<args>...]
 
-benchmarking tool to run predefined models and print the time per epoch either
-to the screen or save it to a file
+options:
+   -h, --help                           Show this help message
+   -v, --version                        Print the version of deeprace
+   -V, --verbose                        Run in verbose mode
+   -L <level> --loglevel=<level>        logging level to use [default: info]
 
-positional arguments:
-  model                 a model descriptor to run (defaul resnet30)
+The most commonly used git commands are:
+   list      list available models
+   run       run training on a given model
 
-optional arguments:
-  -h, --help            show this help message and exit
-  -D DATAPATH, --datapath DATAPATH
-                        path to store the input data in
-  -L LOGLEVEL, --loglevel LOGLEVEL
-                        logging level to use
-  -e NEPOCHS, --nepochs NEPOCHS
-                        number of epochs to run
-  -d DATASET, --dataset DATASET
-                        specify the dataset to use
-  -f DATAFRACTION, --datafraction DATAFRACTION
-                        fraction of the dataset to use
-  -t TIMINGS, --timings TIMINGS
-                        file to store the individual timings in
+See 'deeprace help <command>' for more information on a specific command.
+```
+
+### `run`
+
+``` bash
+$ python3 ./deeprace.py help run
+
+usage: deeprace run [options] [--] <models>
+
+options:
+    -h, --help                                 print this help message
+    -O <mopts> --meta-options=<mopts>          hyper-parameters for training, e.g. batch_size
+    -D <dpath> --datapath=<dpath>              path used for temporary storage, e.g. for the input data, checkpoints etc [default: datasets]
+    -R <rpath> --resultspath=<rpath>           path to store results or checkpoints [default: deeprace-results]
+    -e <neps> --nepochs=<neps>                 number of epochs to train [default: 0]
+    -d <ds> --dataset=<ds>                     the dataset to use [default: cifar10]
+    -f <dfrac> --datafraction=<dfrac>          fraction of the dataset to use, helpful for debugging/testing [default: 1.]
+    -t <output> --timings=<output>             file to store the individual timings in [default: timings.tsv]
+    -s <sep> --separator=<sep>                 seperator for the output data [default: 	]
+    -c <cmt> --comment=<cmt>                   comment to add to the measurement
+```
+
+To run a benchmark, make sure that tensorflow and keras are available. Then call:
+
+``` bash
+$ python3 ./deeprace.py run  -t test.tsv resnet56v1
 ```
 
 Example outout:
@@ -48,10 +57,28 @@ talisker-resnet32v1-cifar10,1.394287,50000,10000,0.1,20180302:165429,20180302:16
 talisker-resnet32v1-cifar10,1.394287,50000,10000,0.1,20180302:165429,20180302:165452,1,14.116095,8.322776,1.7452791357040405,0.4022,2.158809609413147,0.33,-
 ```
 
+
+### `list`
+
+``` bash
+$ python3 ./deeprace.py list
+[180327 09:12:39 tauruslogin5] :: available models:
+[180327 09:12:39 tauruslogin5] :: [resnet] resnet20v1 resnet32v1 resnet44v1 resnet56v1 resnet110v1 resnet164v1 resnet29v2 resnet47v2 resnet65v2 resnet83v2 resnet164v2 resnet245v2 resnet1001v2
+```
+
 ## Dependencies
 
+`deeprace` is written with flexibility in mind. THe core idea is that it can/will be distributed via PYPI (not available yet). During installation through pip (not available yet), only dependencies for the command line tooling will be added. It is up to the user to have a compliant environment to actually run benchmarks. 
+
+### Required
+
 - python 3
-- keras 2+
+
+### Optional
+
+Currently, the benchmark relies on keras and tensorflow as a backend. This is subject to change in the near future.
+
+- keras 2+ 
 - tensorflow 1.3+
 
 
