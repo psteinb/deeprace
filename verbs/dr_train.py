@@ -151,18 +151,19 @@ def run_model(args):
                   sep=args["--separator"]
 
         )
-
-        csvout.write("host{sep}model{sep}dataset{sep}load_dur_sec{sep}ntrain{sep}ntest{sep}datafraction{sep}train_start{sep}train_end{sep}epoch{sep}rel_epoch_start_sec{sep}epoch_dur_sec{sep}loss{sep}acc{sep}val_loss{sep}val_acc{sep}opts{sep}n_model_params{sep}versions{sep}comment\n".format(sep=args["--separator"]))
+        csvout.write("host{sep}model{sep}dataset{sep}load_dur_sec{sep}ntrain{sep}ntest{sep}datafraction{sep}train_start{sep}train_end{sep}epoch{sep}rel_epoch_start_sec{sep}epoch_dur_sec{sep}loss{sep}acc{sep}val_loss{sep}val_acc{sep}top_k_catacc{sep}val_top_k_catacc{sep}opts{sep}n_model_params{sep}versions{sep}comment\n".format(sep=args["--separator"]))
         for i in range(len(timings.epoch_durations)):
-            line = "{constant}{sep}{num}{sep}{rel_epoch_start_sec}{sep}{epoch_dur_sec}{sep}{loss}{sep}{acc}{sep}{val_loss}{sep}{val_acc}{sep}{detail}{sep}{n_model_params}{sep}{versions}{sep}{comment}\n".format(
+            line = "{constant}{sep}{num}{sep}{rel_epoch_start_sec}{sep}{epoch_dur_sec}{sep}{loss}{sep}{acc}{sep}{val_loss}{sep}{val_acc}{sep}{top_k_catacc}{sep}{val_top_k_catacc}{sep}{detail}{sep}{n_model_params}{sep}{versions}{sep}{comment}\n".format(
                 constant=runid,
-                num=i,
+                num=int(i),
                 rel_epoch_start_sec=timings.epoch_start[i],
                 epoch_dur_sec=timings.epoch_durations[i],
                 loss=hist.history['loss'][i],
                 acc=hist.history['acc'][i],
                 val_loss=hist.history['val_loss'][i],
                 val_acc= hist.history['val_acc'][i],
+                top_k_catacc=hist.history['top_k_categorical_accuracy'][i],
+                val_top_k_catacc=hist.history['val_top_k_categorical_accuracy'][i],
                 detail=opts,
                 sep=args["--separator"],
                 n_model_params=details['num_weights'],
