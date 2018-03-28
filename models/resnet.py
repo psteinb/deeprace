@@ -112,13 +112,15 @@ class model(base_model):
         from keras.models import Model
         from models.keras_details.callbacks import stopwatch
         from models.keras_details.model_utils import model_size
-
+        from keras.utils import multi_gpu_model
+        
         batch_size=int(self.batch_size)
         epochs=int(self.epochs)
         if epochs <= 0:
             epochs = 200
             self.epochs = epochs
 
+        self.n_gpus = int(self.n_gpus)
         depth = compute_depth(self.n,self.version)
         model_type = 'ResNet%dv%d' % (depth, self.version)
 
@@ -412,12 +414,23 @@ class model(base_model):
             model = Model(inputs=inputs, outputs=outputs)
             return model
 
-
+        generate_it = None
         if self.version == 2:
-            model = resnet_v2(input_shape=input_shape, depth=depth)
+            generate_it = resnet_v2 #(input_shape=input_shape, depth=depth)
         else:
-            model = resnet_v1(input_shape=input_shape, depth=depth)
+            generate_it = resnet_v1 #(input_shape=input_shape, depth=depth)
 
+        model = None
+        if self.n_gpus != 1 and "tensorflow" in K.backend().lower():
+            import tensorflow as tf
+            with tf.device('/cpu:0'):
+                temp_model = generate_it(input_shape=input_shape, depth=depth)
+            model = multi_gpu_model(temp_model, gpus=self.n_gpus)
+                
+        else:
+            model = generate_it(input_shape=input_shape, depth=depth)
+
+            
         model.compile(loss='categorical_crossentropy',
                       optimizer=Adam(lr=lr_schedule(0)),
                       metrics=['accuracy','top_k_categorical_accuracy'])
