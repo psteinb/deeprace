@@ -421,8 +421,9 @@ class model(base_model):
         model.compile(loss='categorical_crossentropy',
                       optimizer=Adam(lr=lr_schedule(0)),
                       metrics=['accuracy','top_k_categorical_accuracy'])
-        model.summary()
 
+        if logging.getLogger().level == logging.DEBUG:
+            model.summary()
 
 
         lr_scheduler = LearningRateScheduler(lr_schedule)
@@ -502,7 +503,6 @@ class model(base_model):
                                                                                            modeldescr=model_type)
 
         model.save_weights(os.path.join(self.scratchspace,weights_fname))
-
 
         return hist, stopw, { 'num_weights' : model_size(model) }
 
