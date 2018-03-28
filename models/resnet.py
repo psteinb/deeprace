@@ -60,6 +60,7 @@ class model(base_model):
         self.subtract_pixel_mean =True
         self.checkpoint_epochs =False
         self.scratchspace = os.getcwd()
+        self.n_gpus = 1
 
     def provides(self):
         """ provide a list of strings which denote which models can be provided by this module """
@@ -419,7 +420,7 @@ class model(base_model):
 
         model.compile(loss='categorical_crossentropy',
                       optimizer=Adam(lr=lr_schedule(0)),
-                      metrics=['accuracy'])
+                      metrics=['accuracy','top_k_categorical_accuracy'])
         model.summary()
 
 

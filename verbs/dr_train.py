@@ -1,5 +1,5 @@
 """
-usage: deeprace run [options] [--] <models>
+usage: deeprace train [options] [--] <models>
 
 options:
     -h, --help                                 print this help message
@@ -78,6 +78,13 @@ def load_model(descriptor):
     param_dict = loaded.params_from_name(descriptor)
     return (loaded,param_dict)
 
+def describe(modelname):
+    
+    (loaded,opts_from_name) = load_model(modelname[0])
+
+    logging.info("available options for {}".format(modelname[0]))
+    for (k,v) in loaded.model().options().items():
+        print("  {name:20} = {default}".format(name=k,default=v))
 
 def run_model(args):
 
