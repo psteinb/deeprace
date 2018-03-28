@@ -11,7 +11,7 @@ options:
 
 The most commonly used git commands are:
    list      list available models
-   run       run training on a given model
+   train     run training on a given model
 
 See 'deeprace help <command>' for more information on a specific command.
 """
@@ -66,7 +66,7 @@ def main():
         else:
             sys.exit(call([sys.executable, __file__, '--help']))
 
-    elif args['<command>'] == 'run':
+    elif args['<command>'] == 'train':
         import verbs.dr_run
         run_args = docopt(verbs.dr_run.__doc__, argv=argv)
         logging.debug("[run] handing over to run_model:")

@@ -18,7 +18,7 @@ options:
 
 The most commonly used git commands are:
    list      list available models
-   run       run training on a given model
+   train     run training on a given model
 
 See 'deeprace help <command>' for more information on a specific command.
 ```
@@ -26,9 +26,9 @@ See 'deeprace help <command>' for more information on a specific command.
 ### `run`
 
 ``` bash
-$ python3 ./deeprace.py help run
+$ python3 ./deeprace.py help train
 
-usage: deeprace run [options] [--] <models>
+usage: deeprace train [options] [--] <models>
 
 options:
     -h, --help                                 print this help message
@@ -46,7 +46,7 @@ options:
 To run a benchmark, make sure that tensorflow and keras are available. Then call:
 
 ``` bash
-$ python3 ./deeprace.py run  -t test.tsv resnet56v1
+$ python3 ./deeprace.py train -t test.tsv resnet56v1
 ```
 
 Example outout:
