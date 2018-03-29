@@ -18,7 +18,8 @@ options:
 
 The most commonly used git commands are:
    list      list available models
-   run       run training on a given model
+   train     run training on a given model   
+   describe  show available parameters for given model
 
 See 'deeprace help <command>' for more information on a specific command.
 ```
@@ -26,9 +27,9 @@ See 'deeprace help <command>' for more information on a specific command.
 ### `run`
 
 ``` bash
-$ python3 ./deeprace.py help run
+$ python3 ./deeprace.py help train
 
-usage: deeprace run [options] [--] <models>
+usage: deeprace train [options] [--] <models>
 
 options:
     -h, --help                                 print this help message
@@ -46,7 +47,7 @@ options:
 To run a benchmark, make sure that tensorflow and keras are available. Then call:
 
 ``` bash
-$ python3 ./deeprace.py run  -t test.tsv resnet56v1
+$ python3 ./deeprace.py train -t test.tsv resnet56v1
 ```
 
 Example outout:
@@ -66,20 +67,41 @@ $ python3 ./deeprace.py list
 [180327 09:12:39 tauruslogin5] :: [resnet] resnet20v1 resnet32v1 resnet44v1 resnet56v1 resnet110v1 resnet164v1 resnet29v2 resnet47v2 resnet65v2 resnet83v2 resnet164v2 resnet245v2 resnet1001v2
 ```
 
+### `describe`
+
+``` bash
+$ python3 ./deeprace.py describe resnet32v1
+[180329 13:15:14 r02n12] :: importing resnet (from resnet32v1)
+[180329 13:15:14 r02n12] :: found resnet implementation
+[180329 13:15:14 r02n12] :: available options for resnet32v1
+  num_classes          = 10
+  batch_size           = 32
+  scratchspace         = /home/steinbac
+  checkpoint_epochs    = False
+  subtract_pixel_mean  = True
+  n_gpus               = 1
+  epochs               = 200
+  n                    = 5
+  version              = 1
+  data_augmentation    = True
+```
+
 ## Dependencies
 
 `deeprace` is written with flexibility in mind. THe core idea is that it can/will be distributed via PYPI (not available yet). During installation through pip (not available yet), only dependencies for the command line tooling will be added. It is up to the user to have a compliant environment to actually run benchmarks. 
 
 ### Required
 
-- python 3
+- python 3.5+
 
 ### Optional
 
 Currently, the benchmark relies on keras and tensorflow as a backend. This is subject to change in the near future.
 
-- keras 2+ 
+- keras 2.1.3+ 
 - tensorflow 1.3+
 
 
+## Known Issues
 
+- the parallel model in keras does not appear to work with tensorflow 1.3

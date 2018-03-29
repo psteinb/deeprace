@@ -1,5 +1,5 @@
 """
-usage: deeprace run [options] [--] <models>
+usage: deeprace train [options] [--] <models>
 
 options:
     -h, --help                                 print this help message
@@ -34,12 +34,19 @@ else:
 def import_model(name):
     """ import a model and return the imported symbol """
 
-    if not os.path.exists(os.path.join(".","models")):
+    expected_models_dir = os.path.dirname(os.path.abspath(__file__))
+    expected_models_dir = os.path.join(os.path.dirname(expected_models_dir),"models")
+
+    if not os.path.exists(expected_models_dir):
+        logging.warning("%s was not found in %s",expected_models_dir,os.curdir)
         return None
 
-    expected_location =os.path.join(".","models",name+".py")
+    expected_location =os.path.join(expected_models_dir,name+".py")
     if not os.path.exists(expected_location):
+        logging.warning("%s was not found in %s",expected_location,os.curdir)
         return None
+    else:
+        logging.info("found %s implementation",name)
 
     try_this = [ "", ".", ".."]
     full_name = "models.%s" % (name)
@@ -78,6 +85,13 @@ def load_model(descriptor):
     param_dict = loaded.params_from_name(descriptor)
     return (loaded,param_dict)
 
+def describe(modelname):
+    
+    (loaded,opts_from_name) = load_model(modelname[0])
+
+    logging.info("available options for {}".format(modelname[0]))
+    for (k,v) in loaded.model().options().items():
+        print("  {name:20} = {default}".format(name=k,default=v))
 
 def run_model(args):
 
@@ -144,18 +158,19 @@ def run_model(args):
                   sep=args["--separator"]
 
         )
-
-        csvout.write("host{sep}model{sep}dataset{sep}load_dur_sec{sep}ntrain{sep}ntest{sep}datafraction{sep}train_start{sep}train_end{sep}epoch{sep}rel_epoch_start_sec{sep}epoch_dur_sec{sep}loss{sep}acc{sep}val_loss{sep}val_acc{sep}opts{sep}n_model_params{sep}versions{sep}comment\n".format(sep=args["--separator"]))
+        csvout.write("host{sep}model{sep}dataset{sep}load_dur_sec{sep}ntrain{sep}ntest{sep}datafraction{sep}train_start{sep}train_end{sep}epoch{sep}rel_epoch_start_sec{sep}epoch_dur_sec{sep}loss{sep}acc{sep}val_loss{sep}val_acc{sep}top_k_catacc{sep}val_top_k_catacc{sep}opts{sep}n_model_params{sep}versions{sep}comment\n".format(sep=args["--separator"]))
         for i in range(len(timings.epoch_durations)):
-            line = "{constant}{sep}{num}{sep}{rel_epoch_start_sec}{sep}{epoch_dur_sec}{sep}{loss}{sep}{acc}{sep}{val_loss}{sep}{val_acc}{sep}{detail}{sep}{n_model_params}{sep}{versions}{sep}{comment}\n".format(
+            line = "{constant}{sep}{num}{sep}{rel_epoch_start_sec}{sep}{epoch_dur_sec}{sep}{loss}{sep}{acc}{sep}{val_loss}{sep}{val_acc}{sep}{top_k_catacc}{sep}{val_top_k_catacc}{sep}{detail}{sep}{n_model_params}{sep}{versions}{sep}{comment}\n".format(
                 constant=runid,
-                num=i,
+                num=int(i),
                 rel_epoch_start_sec=timings.epoch_start[i],
                 epoch_dur_sec=timings.epoch_durations[i],
                 loss=hist.history['loss'][i],
                 acc=hist.history['acc'][i],
                 val_loss=hist.history['val_loss'][i],
                 val_acc= hist.history['val_acc'][i],
+                top_k_catacc=hist.history['top_k_categorical_accuracy'][i],
+                val_top_k_catacc=hist.history['val_top_k_categorical_accuracy'][i],
                 detail=opts,
                 sep=args["--separator"],
                 n_model_params=details['num_weights'],
