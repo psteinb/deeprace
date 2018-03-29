@@ -34,12 +34,19 @@ else:
 def import_model(name):
     """ import a model and return the imported symbol """
 
-    if not os.path.exists(os.path.join(".","models")):
+    expected_models_dir = os.path.dirname(os.path.abspath(__file__))
+    expected_models_dir = os.path.join(os.path.dirname(expected_models_dir),"models")
+
+    if not os.path.exists(expected_models_dir):
+        logging.warning("%s was not found in %s",expected_models_dir,os.curdir)
         return None
 
-    expected_location =os.path.join(".","models",name+".py")
+    expected_location =os.path.join(expected_models_dir,name+".py")
     if not os.path.exists(expected_location):
+        logging.warning("%s was not found in %s",expected_location,os.curdir)
         return None
+    else:
+        logging.info("found %s implementation",name)
 
     try_this = [ "", ".", ".."]
     full_name = "models.%s" % (name)
