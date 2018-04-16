@@ -22,8 +22,8 @@ from tempfile import mkstemp
 import numpy as np
 import tensorflow as tf  # pylint: disable=g-bad-import-order
 
-from official.resnet import cifar10_main
-from official.utils.testing import integration
+from .resnet import cifar10_main
+from .utils.testing import integration
 
 tf.logging.set_verbosity(tf.logging.ERROR)
 
