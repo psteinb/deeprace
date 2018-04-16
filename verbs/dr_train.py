@@ -6,6 +6,7 @@ options:
     -O <mopts> --meta-options=<mopts>          hyper-parameters for training, e.g. batch_size
     -D <dpath> --datapath=<dpath>              path used for temporary storage, e.g. for the input data, checkpoints etc [default: datasets]
     -R <rpath> --resultspath=<rpath>           path to store results or checkpoints [default: deeprace-results]
+    -b <backe> --backend=<backe>               which backend to use [default: keras]
     -e <neps> --nepochs=<neps>                 number of epochs to train [default: 0]
     -d <ds> --dataset=<ds>                     the dataset to use [default: cifar10]
     -f <dfrac> --datafraction=<dfrac>          fraction of the dataset to use, helpful for debugging/testing [default: 1.]
