@@ -10,4 +10,4 @@ cd /home/steinba/development/deeprace/
 pwd
 module load singularity/2.4.2
 
-singularity exec -B $PWD:/home/steinba/deeprace --nv /home/steinba/software/singularity/tf1.3.simg python3 /home/steinba/development/deeprace/deeprace.py run -c "k80:1,fs:nfs,singularity:nfs" -t /home/steinba/development/deeprace/scripts/short/resnet56v1-short-singularity-nfs-${SLURM_ARRAY_JOB_ID}_${SLURM_ARRAY_TASK_ID}.tsv -e 15 resnet56v1
+singularity exec -B $PWD:/home/steinba/deeprace --nv /home/steinba/software/singularity/tf1.3.simg python3 /home/steinba/development/deeprace/deeprace.py train -c "k80:1,fs:nfs,singularity:nfs" -t /home/steinba/development/deeprace/scripts/short/resnet56v1-short-singularity-nfs-${SLURM_ARRAY_JOB_ID}_${SLURM_ARRAY_TASK_ID}.tsv -e 15 resnet56v1
