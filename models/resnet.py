@@ -73,7 +73,15 @@ class model(base_model):
         possible_values.append(111)
         value.extend( [ name(n=i,version=2) for i in possible_values ] )
 
-        return value
+        backends = []
+        from .keras_details import resnet as keras_resnet
+        if keras_resnet.can_train():
+            backends.append("keras")
+        from .tf_details import resnet as tf_resnet
+        if tf_resnet.can_train():
+            backends.append("tensorflow")
+            
+        return value, backends
 
     def options(self):
         """ return a dictionary of options that can be provided to the train method besides the train and test dataset """

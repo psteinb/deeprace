@@ -57,7 +57,9 @@ def print_models():
 
     logging.info("available models:")
     for k,v in models.items():
-        logging.info("[%s] %s" % (k," ".join(v)))
+        if len(v) < 2:
+            continue
+        logging.info("[%s types] %s (backends: %s)" % (k," ".join(v[0]), v[-1]))
 
     return 0
 

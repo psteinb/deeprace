@@ -3,6 +3,16 @@ import math
 import numpy as np
 import os
 import time
+import importlib
+
+def can_train():
+
+    keras_found = importlib.util.find_spec('keras')
+
+    if keras_found:
+        return True
+    else:
+        return False
 
 def compute_depth(n=3,version=1):
     value = 0
