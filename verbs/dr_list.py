@@ -55,11 +55,11 @@ def print_models():
         logging.error("no models found")
         return 1
 
-    logging.info("available models:")
+    logging.info("available models and backends:")
     for k,v in models.items():
         if len(v) < 2:
             continue
-        logging.info("[%s types] %s (backends: %s)" % (k," ".join(v[0]), v[-1]))
+        logging.info("%s (backends: %s)" % (" ".join(v[0]), v[-1]))
 
     return 0
 
