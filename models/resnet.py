@@ -89,18 +89,15 @@ class model(base_model):
 
         return self.__dict__
 
-    def data_loader(self,temp_path ):
-        if self.num_classes == 10:
-            from datasets import cifar10
-            train, test = cifar10.load_data(temp_path)
-            ntrain, ntest = train[0].shape[0], test[0].shape[0]
-            return train, test, ntrain, ntest
-        elif self.num_classes == 100:
-            #TODO likely to yield an error
-            from datasets import cifar100
-            train, test = cifar100.load_data(temp_path)
-            ntrain, ntest = train[0].shape[0], test[0].shape[0]
-            return train, test, ntrain, ntest
+    def data_loader(self, temp_path, dataset_name = "cifar10" ):
+
+        if "keras" in self.backend.lower():
+            from .keras_details.resnet import data_loader
+            return data_loader(temp_path, dataset_name)
+
+        elif ["tf", "tensorflow"] in self.backend.lower():
+            from .tf_details.resnet import data_loader
+            return data_loader(temp_path, dataset_name)
 
 
     def train(self,train, test, datafraction = 1.):
