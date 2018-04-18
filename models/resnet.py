@@ -91,11 +91,12 @@ class model(base_model):
 
     def data_loader(self, temp_path, dataset_name = "cifar10" ):
 
+        #TODO: this if clause is non-sense, there must be a better way
         if "keras" in self.backend.lower():
             from .keras_details.resnet import data_loader
             return data_loader(temp_path, dataset_name)
 
-        elif ["tf", "tensorflow"] in self.backend.lower():
+        elif "tf" in self.backend.lower() or "tensorflow" in self.backend.lower():
             from .tf_details.resnet import data_loader
             return data_loader(temp_path, dataset_name)
 
@@ -108,9 +109,13 @@ class model(base_model):
         if datafraction > 1.0 or datafraction < 0:
             logging.error("resnet :: datafraction can only be [0,1]")
 
+        #TODO: this if clause is non-sense, there must be a better way
         if "keras" in self.backend.lower():
             from .keras_details import resnet as keras_resnet
             return keras_resnet.train(train,test,datafraction,self.__dict__)
+        if "tf" in self.backend.lower() or "tensorflow" in self.backend.lower():
+            from .tf_details import resnet as tf_resnet
+            return tf_resnet.train(train,test,datafraction,self.__dict__)
 
     def versions(self):
 

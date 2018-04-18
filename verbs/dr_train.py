@@ -107,6 +107,7 @@ def run_model(args):
     (loaded,opts_from_name) = load_model(modelname)
 
     model = loaded.model()
+    model.backend=args["--backend"]
     deciphered = model.options()
 
     logging.info("successfully imported %s",modelname)
