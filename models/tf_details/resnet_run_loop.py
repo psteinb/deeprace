@@ -28,9 +28,9 @@ import os
 
 import tensorflow as tf
 
-from utils.arg_parsers import parsers  # pylint: disable=g-bad-import-order
-from utils.logging import hooks_helper
-import resnet_model
+from .utils.arg_parsers import parsers  # pylint: disable=g-bad-import-order
+from .utils.logging import hooks_helper
+from . import resnet_model
 
 
 ################################################################################
@@ -303,11 +303,13 @@ def validate_batch_size_for_multi_gpu(batch_size):
     raise ValueError(err)
 
 
-def resnet_main(flags, model_function, input_function, opts):
+def resnet_main(flags, model_function, input_function, opts = None):
   # Using the Winograd non-fused algorithms provides a small performance boost.
   os.environ['TF_ENABLE_WINOGRAD_NONFUSED'] = '1'
 
-  ngpus = int(opts["n_gpus"])
+  ngpus = 1
+  if opts:
+    ngpus = int(opts["n_gpus"])
 
   if ngpus > 1:
     validate_batch_size_for_multi_gpu(bs)
@@ -331,15 +333,18 @@ def resnet_main(flags, model_function, input_function, opts):
       allow_soft_placement=True)
 
   # Set up a RunConfig to save checkpoint and set session config.
-  if opts["checkpoint_epochs"]:
+  if opts and opts["checkpoint_epochs"]:
     run_config = tf.estimator.RunConfig().replace(save_checkpoints_secs=1e9,
                                                   session_config=session_config)
   else:
     run_config = tf.estimator.RunConfig().replace(save_checkpoints_secs=None,
+                                                  keep_checkpoint_every_n_hours=int(1e4),
                                                   session_config=session_config)
 
   classifier = tf.estimator.Estimator(
-      model_fn=model_function, model_dir=flags.model_dir, config=run_config,
+      model_fn=model_function,
+      model_dir=flags.model_dir,
+      config=run_config,
       params={
           'resnet_size': flags.resnet_size,
           'data_format': flags.data_format,
@@ -352,7 +357,7 @@ def resnet_main(flags, model_function, input_function, opts):
     train_hooks = hooks_helper.get_train_hooks(flags.hooks,
                                                batch_size=flags.batch_size)
 
-    print('Starting a training cycle.')
+    logging.info('Starting a training cycle.')
 
     def input_fn_train():
       return input_function(True, flags.data_dir, flags.batch_size,
@@ -362,7 +367,7 @@ def resnet_main(flags, model_function, input_function, opts):
     classifier.train(input_fn=input_fn_train, hooks=train_hooks,
                      max_steps=flags.max_train_steps)
 
-    print('Starting to evaluate.')
+    logging.info('Starting to evaluate.')
     # Evaluate the model and print results
     def input_fn_eval():
       return input_function(False, flags.data_dir, flags.batch_size,

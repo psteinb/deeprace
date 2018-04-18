@@ -123,7 +123,7 @@ def run_model(args):
         deciphered["epochs"] = int(args["--nepochs"])
 
     opts = ",".join(["{k}={v}".format(k=item[0],v=item[1]) for item in deciphered.items() ])
-
+    deciphered['datapath'] = args["--datapath"]
     start = datetime.datetime.now()
     train, test, ntrain, ntest = model.data_loader(args["--datapath"])
     end = datetime.datetime.now()

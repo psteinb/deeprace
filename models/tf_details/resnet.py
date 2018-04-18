@@ -81,18 +81,20 @@ def train(train, test, datafraction, opts):
 
     """setup the resnet and run the train function, train and test will be None here as reading the files from disk needs to be part of the compute graph AFAIK """
 
-    import cifar10_main as cfmain
-    import resnet_run_loop as run_loop
+    from . import cifar10_main as cfmain
+    from . import resnet_run_loop as run_loop
     opts["datafraction"] = datafraction
 
-    parsed = run_loop.ResnetArgParser()
-
-    model_dir = os.path.join(opts.scratchspace,'tfmodel')
+    parser = run_loop.ResnetArgParser()
+    
+    model_dir = os.path.join(opts['scratchspace'],'model')
+    model_dir = os.path.abspath(model_dir)
     if not os.path.exists(model_dir):
         os.makedirs(model_dir)
 
-    data_location = os.path.join(opts.scratchspace)
-    parsed.set_defaults(data_dir=data_location,
+    data_location = os.path.join(opts['datapath']# , 'cifar-10-batches-bin'
+    )
+    parser.set_defaults(data_dir=data_location,
                         model_dir=model_dir,
                         resnet_size=compute_depth(opts["n"],opts["version"]),
                         train_epochs=opts['epochs'],
@@ -101,6 +103,8 @@ def train(train, test, datafraction, opts):
                         batch_size=opts['batch_size'],
                         multi_gpu = opts["n_gpus"] > 1)
 
+    flags = parser.parse_args(args=[])
+    logging.info('handing over \n >> %s \n >>  %s',flags,opts)
     results = run_loop.resnet_main(flags, cfmain.cifar10_model_fn, cfmain.input_fn, opts)
 
     return None, None, { 'num_weights' : None }

@@ -20,11 +20,12 @@ from __future__ import print_function
 
 import os
 import sys
+import logging
 
 import tensorflow as tf
 
-import resnet_model
-import resnet_run_loop
+from . import resnet_model
+from . import resnet_run_loop
 
 _HEIGHT = 32
 _WIDTH = 32
@@ -122,6 +123,7 @@ def input_fn(is_training, data_dir, batch_size, num_epochs=1,
   Returns:
     A dataset that can be used for iteration.
   """
+  logging.info('searching %s for content',data_dir)
   filenames = get_filenames(is_training, data_dir)
   dataset = tf.data.FixedLengthRecordDataset(filenames, _RECORD_BYTES)
 
@@ -220,8 +222,12 @@ def main(argv):
                       batch_size=128)
 
   flags = parser.parse_args(args=argv[1:])
+
+  print("## recv",argv[1:])
+
   print("## flags",type(flags), flags)
   input_function = flags.use_synthetic_data and get_synth_input_fn() or input_fn
+  
   resnet_run_loop.resnet_main(flags, cifar10_model_fn, input_function)
 
 
