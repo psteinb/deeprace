@@ -303,19 +303,23 @@ def validate_batch_size_for_multi_gpu(batch_size):
     raise ValueError(err)
 
 
-def resnet_main(flags, model_function, input_function):
+def resnet_main(flags, model_function, input_function, opts):
   # Using the Winograd non-fused algorithms provides a small performance boost.
   os.environ['TF_ENABLE_WINOGRAD_NONFUSED'] = '1'
 
-  if flags.multi_gpu:
-    validate_batch_size_for_multi_gpu(flags.batch_size)
+  ngpus = int(opts["n_gpus"])
+
+  if ngpus > 1:
+    validate_batch_size_for_multi_gpu(bs)
+
 
     # There are two steps required if using multi-GPU: (1) wrap the model_fn,
     # and (2) wrap the optimizer. The first happens here, and (2) happens
     # in the model_fn itself when the optimizer is defined.
     model_function = tf.contrib.estimator.replicate_model_fn(
         model_function,
-        loss_reduction=tf.losses.Reduction.MEAN)
+        loss_reduction=tf.losses.Reduction.MEAN,
+      devices=None)
 
   # Create session config based on values of inter_op_parallelism_threads and
   # intra_op_parallelism_threads. Note that we default to having
@@ -327,8 +331,13 @@ def resnet_main(flags, model_function, input_function):
       allow_soft_placement=True)
 
   # Set up a RunConfig to save checkpoint and set session config.
-  run_config = tf.estimator.RunConfig().replace(save_checkpoints_secs=1e9,
-                                                session_config=session_config)
+  if opts["checkpoint_epochs"]:
+    run_config = tf.estimator.RunConfig().replace(save_checkpoints_secs=1e9,
+                                                  session_config=session_config)
+  else:
+    run_config = tf.estimator.RunConfig().replace(save_checkpoints_secs=None,
+                                                  session_config=session_config)
+
   classifier = tf.estimator.Estimator(
       model_fn=model_function, model_dir=flags.model_dir, config=run_config,
       params={

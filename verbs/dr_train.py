@@ -103,7 +103,6 @@ def run_model(args):
         return 1
 
     modelname = args["<models>"]
-    #logging.info("loading %s",modelname)
     (loaded,opts_from_name) = load_model(modelname)
 
     model = loaded.model()
