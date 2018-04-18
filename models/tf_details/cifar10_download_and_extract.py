@@ -36,7 +36,7 @@ parser.add_argument(
     help='Directory to download data and extract the tarball')
 
 
-def main(_):
+def main(unused_argv):
   """Download and extract the tarball from Alex's website."""
   if not os.path.exists(FLAGS.data_dir):
     os.makedirs(FLAGS.data_dir)
@@ -54,6 +54,8 @@ def main(_):
     print()
     statinfo = os.stat(filepath)
     print('Successfully downloaded', filename, statinfo.st_size, 'bytes.')
+  else:
+    print('Nothing to do, %s exists' % filepath)
 
   tarfile.open(filepath, 'r:gz').extractall(FLAGS.data_dir)
 

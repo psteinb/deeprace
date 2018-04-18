@@ -46,11 +46,11 @@ Notes about add_argument():
     The metavar variable determines how the flag will appear in help text. If
   not specified, the convention is to use name.upper(). Thus rather than:
 
-    --app_specific_arg APP_SPECIFIC_ARG, -asa APP_SPECIFIC_ARG
+    --application_specific_arg APPLICATION_SPECIFIC_ARG, -asa APPLICATION_SPECIFIC_ARG
 
   if metavar="<ASA>" is set, the user sees:
 
-    --app_specific_arg <ASA>, -asa <ASA>
+    --application_specific_arg <ASA>, -asa <ASA>
 
 """
 
@@ -58,36 +58,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+
 import argparse
-
-import tensorflow as tf
-
-
-# Map string to (TensorFlow dtype, default loss scale)
-DTYPE_MAP = {
-    "fp16": (tf.float16, 128),
-    "fp32": (tf.float32, 1),
-}
-
-
-def parse_dtype_info(flags):
-  """Convert dtype string to tf dtype, and set loss_scale default as needed.
-
-  Args:
-    flags: namespace object returned by arg parser.
-
-  Raises:
-    ValueError: If an invalid dtype is provided.
-  """
-  if flags.dtype in (i[0] for i in DTYPE_MAP.values()):
-    return  # Make function idempotent
-
-  try:
-    flags.dtype, default_loss_scale = DTYPE_MAP[flags.dtype]
-  except KeyError:
-    raise ValueError("Invalid dtype: {}".format(flags.dtype))
-
-  flags.loss_scale = flags.loss_scale or default_loss_scale
 
 
 class BaseParser(argparse.ArgumentParser):
@@ -99,18 +71,14 @@ class BaseParser(argparse.ArgumentParser):
     model_dir: Create a flag for specifying the model file directory.
     train_epochs: Create a flag to specify the number of training epochs.
     epochs_between_evals: Create a flag to specify the frequency of testing.
-    stop_threshold: Create a flag to specify a threshold accuracy or other
-      eval metric which should trigger the end of training.
-    batch_size: Create a flag to specify the global batch size.
+    batch_size: Create a flag to specify the batch size.
     multi_gpu: Create a flag to allow the use of all available GPUs.
-    num_gpu: Create a flag to specify the number of GPUs used.
     hooks: Create a flag to specify hooks for logging.
   """
 
   def __init__(self, add_help=False, data_dir=True, model_dir=True,
-               train_epochs=True, epochs_between_evals=True,
-               stop_threshold=True, batch_size=True,
-               multi_gpu=False, num_gpu=True, hooks=True):
+               train_epochs=True, epochs_between_evals=True, batch_size=True,
+               multi_gpu=True, hooks=True):
     super(BaseParser, self).__init__(add_help=add_help)
 
     if data_dir:
@@ -143,40 +111,17 @@ class BaseParser(argparse.ArgumentParser):
           metavar="<EBE>"
       )
 
-    if stop_threshold:
-      self.add_argument(
-          "--stop_threshold", "-st", type=float, default=None,
-          help="[default: %(default)s] If passed, training will stop at "
-          "the earlier of train_epochs and when the evaluation metric is "
-          "greater than or equal to stop_threshold.",
-          metavar="<ST>"
-      )
-
     if batch_size:
       self.add_argument(
           "--batch_size", "-bs", type=int, default=32,
-          help="[default: %(default)s] Global batch size for training and "
-               "evaluation.",
+          help="[default: %(default)s] Batch size for training and evaluation.",
           metavar="<BS>"
       )
-
-    assert not (multi_gpu and num_gpu)
 
     if multi_gpu:
       self.add_argument(
           "--multi_gpu", action="store_true",
           help="If set, run across all available GPUs."
-      )
-
-    if num_gpu:
-      self.add_argument(
-          "--num_gpus", "-ng",
-          type=int,
-          default=1 if tf.test.is_built_with_cuda() else 0,
-          help="[default: %(default)s] How many GPUs to use with the "
-               "DistributionStrategies API. The default is 1 if TensorFlow was"
-               "built with CUDA, and 0 otherwise.",
-          metavar="<NG>"
       )
 
     if hooks:
@@ -186,8 +131,8 @@ class BaseParser(argparse.ArgumentParser):
                "of train hooks. "
                "Example: --hooks LoggingTensorHook ExamplesPerSecondHook. "
                "Allowed hook names (case-insensitive): LoggingTensorHook, "
-               "ProfilerHook, ExamplesPerSecondHook, LoggingMetricHook."
-               "See official.utils.logs.hooks_helper for details.",
+               "ProfilerHook, ExamplesPerSecondHook. "
+               "See official.utils.logging.hooks_helper for details.",
           metavar="<HK>"
       )
 
@@ -203,8 +148,7 @@ class PerformanceParser(argparse.ArgumentParser):
   """
 
   def __init__(self, add_help=False, num_parallel_calls=True, inter_op=True,
-               intra_op=True, use_synthetic_data=True, max_train_steps=True,
-               dtype=True):
+               intra_op=True, use_synthetic_data=True, max_train_steps=True):
     super(PerformanceParser, self).__init__(add_help=add_help)
 
     if num_parallel_calls:
@@ -257,31 +201,6 @@ class PerformanceParser(argparse.ArgumentParser):
           metavar="<MTS>"
       )
 
-    if dtype:
-      self.add_argument(
-          "--dtype", "-dt",
-          default="fp32",
-          choices=list(DTYPE_MAP.keys()),
-          help="[default: %(default)s] {%(choices)s} The TensorFlow datatype "
-               "used for calculations. Variables may be cast to a higher"
-               "precision on a case-by-case basis for numerical stability.",
-          metavar="<DT>"
-      )
-
-      self.add_argument(
-          "--loss_scale", "-ls",
-          type=int,
-          help="[default: %(default)s] The amount to scale the loss by when "
-               "the model is run. Before gradients are computed, the loss is "
-               "multiplied by the loss scale, making all gradients loss_scale "
-               "times larger. To adjust for this, gradients are divided by the "
-               "loss scale before being applied to variables. This is "
-               "mathematically equivalent to training without a loss scale, "
-               "but the loss scale helps avoid some intermediate gradients "
-               "from underflowing to zero. If not provided the default for "
-               "fp16 is 128 and 1 for all other dtypes.",
-      )
-
 
 class ImageModelParser(argparse.ArgumentParser):
   """Default parser for specification image specific behavior.
@@ -297,7 +216,7 @@ class ImageModelParser(argparse.ArgumentParser):
       self.add_argument(
           "--data_format", "-df",
           default=None,
-          choices=["channels_first", "channels_last"],
+          choices=['channels_first', 'channels_last'],
           help="A flag to override the data format used in the model. "
                "channels_first provides a performance boost on GPU but is not "
                "always compatible with CPU. If left unspecified, the data "
@@ -305,82 +224,3 @@ class ImageModelParser(argparse.ArgumentParser):
                "was built for CPU or GPU.",
           metavar="<CF>"
       )
-
-
-class ExportParser(argparse.ArgumentParser):
-  """Parsing options for exporting saved models or other graph defs.
-
-  This is a separate parser for now, but should be made part of BaseParser
-  once all models are brought up to speed.
-
-  Args:
-    add_help: Create the "--help" flag. False if class instance is a parent.
-    export_dir: Create a flag to specify where a SavedModel should be exported.
-  """
-
-  def __init__(self, add_help=False, export_dir=True):
-    super(ExportParser, self).__init__(add_help=add_help)
-    if export_dir:
-      self.add_argument(
-          "--export_dir", "-ed",
-          help="[default: %(default)s] If set, a SavedModel serialization of "
-               "the model will be exported to this directory at the end of "
-               "training. See the README for more details and relevant links.",
-          metavar="<ED>"
-      )
-
-
-class BenchmarkParser(argparse.ArgumentParser):
-  """Default parser for benchmark logging.
-
-  Args:
-    add_help: Create the "--help" flag. False if class instance is a parent.
-    benchmark_log_dir: Create a flag to specify location for benchmark logging.
-  """
-
-  def __init__(self, add_help=False, benchmark_log_dir=True,
-               bigquery_uploader=True):
-    super(BenchmarkParser, self).__init__(add_help=add_help)
-    if benchmark_log_dir:
-      self.add_argument(
-          "--benchmark_log_dir", "-bld", default=None,
-          help="[default: %(default)s] The location of the benchmark logging.",
-          metavar="<BLD>"
-      )
-    if bigquery_uploader:
-      self.add_argument(
-          "--gcp_project", "-gp", default=None,
-          help="[default: %(default)s] The GCP project name where the benchmark"
-               " will be uploaded.",
-          metavar="<GP>"
-      )
-      self.add_argument(
-          "--bigquery_data_set", "-bds", default="test_benchmark",
-          help="[default: %(default)s] The Bigquery dataset name where the"
-               " benchmark will be uploaded.",
-          metavar="<BDS>"
-      )
-      self.add_argument(
-          "--bigquery_run_table", "-brt", default="benchmark_run",
-          help="[default: %(default)s] The Bigquery table name where the"
-               " benchmark run information will be uploaded.",
-          metavar="<BRT>"
-      )
-      self.add_argument(
-          "--bigquery_metric_table", "-bmt", default="benchmark_metric",
-          help="[default: %(default)s] The Bigquery table name where the"
-               " benchmark metric information will be uploaded.",
-          metavar="<BMT>"
-      )
-
-
-class EagerParser(BaseParser):
-  """Remove options not relevant for Eager from the BaseParser."""
-
-  def __init__(self, add_help=False, data_dir=True, model_dir=True,
-               train_epochs=True, batch_size=True):
-    super(EagerParser, self).__init__(
-        add_help=add_help, data_dir=data_dir, model_dir=model_dir,
-        train_epochs=train_epochs, epochs_between_evals=False,
-        stop_threshold=False, batch_size=batch_size, multi_gpu=False,
-        hooks=False)
