@@ -73,6 +73,7 @@ class model(base_model):
         possible_values.append(111)
         value.extend( [ name(n=i,version=2) for i in possible_values ] )
 
+        #TODO: automate this
         backends = []
         from .keras_details import resnet as keras_resnet
         if keras_resnet.can_train():
@@ -80,7 +81,7 @@ class model(base_model):
         from .tf_details import resnet as tf_resnet
         if tf_resnet.can_train():
             backends.append("tensorflow")
-            
+
         return value, backends
 
     def options(self):
@@ -95,6 +96,7 @@ class model(base_model):
             ntrain, ntest = train[0].shape[0], test[0].shape[0]
             return train, test, ntrain, ntest
         elif self.num_classes == 100:
+            #TODO likely to yield an error
             from datasets import cifar100
             train, test = cifar100.load_data(temp_path)
             ntrain, ntest = train[0].shape[0], test[0].shape[0]
