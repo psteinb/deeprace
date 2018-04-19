@@ -25,7 +25,7 @@ from __future__ import print_function
 
 import argparse
 import os
-
+import logging
 import tensorflow as tf
 
 from .utils.arg_parsers import parsers  # pylint: disable=g-bad-import-order
