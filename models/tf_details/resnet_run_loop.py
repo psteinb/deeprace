@@ -31,6 +31,8 @@ import numpy as np
 
 from .utils.arg_parsers import parsers  # pylint: disable=g-bad-import-order
 from .utils.logging import hooks_helper
+from .utils.logging.hooks import timing_summary
+
 from . import resnet_model
 
 
@@ -366,15 +368,16 @@ def resnet_main(flags, model_function, input_function, opts = None):
   flags.hooks.append("TimePerEpochHook")
   flags.hooks.append("CaptureTensorsHook")
 
-  epoch_times = []
+  global_times = timing_summary()
   history = {}
 
-  train_hooks = None
+  #train_hooks = None
   for _ in range(epochs_per_eval):
     train_hooks = hooks_helper.get_train_hook_dict(flags.hooks,
                                                    batch_size=flags.batch_size,
                                                    every_n_steps=steps_per_epoch,
                                                    tensors=['train_accuracy','train_loss'])
+
 
     logging.info('Starting a training cycle. %s',train_hooks.keys())
 
@@ -420,9 +423,15 @@ def resnet_main(flags, model_function, input_function, opts = None):
 
     for k in train_hooks["CaptureTensorsHook"].captured.keys():
       if k in history.keys():
-        history[k].append(train_hooks["CaptureTensorsHook"].captured[k][-1])
+        history[k].extend(train_hooks["CaptureTensorsHook"].captured[k])
       else:
-        history[k] = [train_hooks["CaptureTensorsHook"].captured[k][-1]]
+        history[k] = train_hooks["CaptureTensorsHook"].captured[k]
+
+    epoch_times = train_hooks["TimePerEpochHook"].summary()
+    logging.info("global was %s",str(global_times.train_begin))
+    global_times.add(epoch_times)
+    logging.info("global is %s",str(global_times.train_begin))
+
 
   #don't ask about the following I am happy I got this far
   history["val_loss"] = history.pop("loss")
@@ -430,9 +439,9 @@ def resnet_main(flags, model_function, input_function, opts = None):
   history["loss"] = history.pop("train_loss")
   history["acc"] = history.pop("train_accuracy")
 
-  epoch_times = train_hooks["TimePerEpochHook"].summary()
 
-  return history,epoch_times
+  logging.info("Completed %i epochs (acc %i, val_acc %i)", len(global_times.epoch_durations),len(history["acc"]),len(history["val_acc"]))
+  return history,global_times
 
 class ResnetArgParser(argparse.ArgumentParser):
   """Arguments for configuring and running a Resnet Model.

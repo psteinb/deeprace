@@ -36,6 +36,16 @@ class timing_summary:
     self.epoch_start = None
     self.train_end = None
 
+  def add(self,other):
+    self.train_begin = other.train_begin
+    self.train_end = other.train_end
+
+    if not self.epoch_durations:
+      self.epoch_durations = other.epoch_durations
+      self.epoch_start = other.epoch_start
+    else:
+      self.epoch_durations.extend(other.epoch_durations)
+      self.epoch_start.extend(other.epoch_start)
 
 class TimePerEpochHook(tf.train.SessionRunHook):
   def __init__(self,
@@ -267,16 +277,22 @@ class CaptureTensorsHook(tf.train.SessionRunHook):
                              for (tag, tensor) in self._tensors.items()}
 
   def before_run(self, run_context):  # pylint: disable=unused-argument
-    self._should_trigger = self._timer.should_trigger_for_step(self._iter_count)
-    if self._should_trigger:
-      return tf.train.SessionRunArgs(self._current_tensors)
-    else:
-      return None
+     self._should_trigger = self._timer.should_trigger_for_step(self._iter_count)
+     if self._should_trigger:
+       return tf.train.SessionRunArgs(self._current_tensors)
+     else:
+       return None
 
   def _log_tensors(self, tensor_values):
 
+    logging.debug("%i/%i %s",self._iter_count,self.period,tensor_values)
+
+    #TODO: something is wrong with the counting of the steps per epoch
+    #TODO: added this fix after manual validation of logs with default tf output
+    if self._iter_count == self.period:
+      return
+
     for (k,v) in tensor_values.items():
-      print("\n\n",self._iter_count,self.period,"appending ",v,type(v),"\n")
       self.captured[k].append(v)
     # original = np.get_printoptions()
     # np.set_printoptions(suppress=True)
