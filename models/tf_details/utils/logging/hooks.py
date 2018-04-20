@@ -20,7 +20,69 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import logging
 import tensorflow as tf
+
+
+class TimePerEpochHook(tf.train.SessionRunHook):
+  def __init__(self,
+               batch_size,
+               num_images,
+               warm_steps=0):
+
+    self._timer = tf.train.SecondOrStepTimer(
+        #every_steps=1000#,
+        every_steps=num_images // batch_size
+    )
+
+    self._epoch_train_time = 0
+    self._total_steps = 0
+    self._batch_size = batch_size
+    self._num_images = num_images
+    self._warm_steps = warm_steps
+    self.epoch_times = []
+    logging.info(" >TimePerEpochHook::__init__< received bs = %i, ni = %i", batch_size, num_images)
+
+  def begin(self):
+    """Called once before using the session to check global step."""
+    self._global_step_tensor = tf.train.get_global_step()
+    if self._global_step_tensor is None:
+      raise RuntimeError(
+          'Global step should be created to use StepCounterHook.')
+
+  def before_run(self, run_context):  # pylint: disable=unused-argument
+    """Called before each call to run().
+
+    Args:
+      run_context: A SessionRunContext object.
+
+    Returns:
+      A SessionRunArgs object or None if never triggered.
+    """
+    return tf.train.SessionRunArgs(self._global_step_tensor)
+
+  def after_run(self, run_context, run_values):  # pylint: disable=unused-argument
+    """Called after each call to run().
+
+    Args:
+      run_context: A SessionRunContext object.
+      run_values: A SessionRunValues object.
+    """
+    global_step = run_values.results
+
+
+    if self._timer.should_trigger_for_step(global_step) and global_step > self._warm_steps:
+      elapsed_time, elapsed_steps = self._timer.update_last_triggered_step(
+          global_step)
+      if elapsed_time is not None:
+        self._epoch_train_time += elapsed_time
+        self._total_steps += elapsed_steps
+
+        self.epoch_times.append(self._epoch_train_time)
+        tf.logging.info('Epoch [%g steps]: %g (%s)', self._total_steps,self._epoch_train_time,str(self.epoch_times))
+
+        self._epoch_train_time = 0
+
 
 
 class ExamplesPerSecondHook(tf.train.SessionRunHook):

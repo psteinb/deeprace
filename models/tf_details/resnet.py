@@ -94,6 +94,10 @@ def train(train, test, datafraction, opts):
 
     data_location = os.path.join(opts['datapath']# , 'cifar-10-batches-bin'
     )
+
+    opts["ntrain"] = 50000
+    opts["ntest"] = 10000
+
     parser.set_defaults(data_dir=data_location,
                         model_dir=model_dir,
                         resnet_size=compute_depth(opts["n"],opts["version"]),

@@ -121,10 +121,31 @@ def get_examples_per_second_hook(every_n_steps=100,
                                      batch_size=batch_size,
                                      warm_steps=warm_steps)
 
+def get_time_per_epoch(batch_size=32,
+                       num_images=50000,
+                       warm_steps=5,
+                       **kwargs):  # pylint: disable=unused-argument
+  """Function to get ExamplesPerSecondHook.
+
+  Args:
+    every_n_steps: `int`, print current and average examples per second every
+      N steps.
+    batch_size: `int`, total batch size used to calculate examples/second from
+      global time.
+    warm_steps: skip this number of steps before logging and running average.
+    kwargs: a dictionary of arguments to ExamplesPerSecondHook.
+
+  Returns:
+    Returns a ProfilerHook that writes out timelines that can be loaded into
+    profiling tools like chrome://tracing.
+  """
+  return hooks.TimePerEpochHook(batch_size=batch_size, num_images=num_images)
+
 
 # A dictionary to map one hook name and its corresponding function
 HOOKS = {
     'loggingtensorhook': get_logging_tensor_hook,
+    'timeperepochhook': get_time_per_epoch,
     'profilerhook': get_profiler_hook,
     'examplespersecondhook': get_examples_per_second_hook,
 }

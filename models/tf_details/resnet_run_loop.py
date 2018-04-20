@@ -264,6 +264,7 @@ def resnet_model_fn(features, labels, mode, model_class,
 
   accuracy = tf.metrics.accuracy(
       tf.argmax(labels, axis=1), predictions['classes'])
+
   metrics = {'accuracy': accuracy}
 
   # Create a tensor named train_accuracy for logging purposes
@@ -311,10 +312,11 @@ def resnet_main(flags, model_function, input_function, opts = None):
   if opts:
     ngpus = int(opts["n_gpus"])
 
+  if flags.batch_size != opts["batch_size"]:
+    logging.warning("batch sizes differ in model %i %i", flags.batch_size, opts["batch_size"])
+
   if ngpus > 1:
     validate_batch_size_for_multi_gpu(bs)
-
-
     # There are two steps required if using multi-GPU: (1) wrap the model_fn,
     # and (2) wrap the optimizer. The first happens here, and (2) happens
     # in the model_fn itself when the optimizer is defined.
@@ -353,9 +355,13 @@ def resnet_main(flags, model_function, input_function, opts = None):
           'version': flags.version,
       })
 
+  flags.hooks.append("TimePerEpochHook")
+  epoch_times = []
+
   for _ in range(flags.train_epochs // flags.epochs_between_evals):
     train_hooks = hooks_helper.get_train_hooks(flags.hooks,
-                                               batch_size=flags.batch_size)
+                                               batch_size=flags.batch_size,
+                                               num_images=opts["ntrain"])
 
     logging.info('Starting a training cycle.')
 
@@ -382,6 +388,12 @@ def resnet_main(flags, model_function, input_function, opts = None):
     eval_results = classifier.evaluate(input_fn=input_fn_eval,
                                        steps=flags.max_train_steps)
     print(eval_results)
+    epoch_times.extend(train_hooks[-1].epoch_times)
+
+  if len(epoch_times):
+    logging.info("<Finished:1> %s", epoch_times)
+  else:
+    logging.warning("No timing information per epoch recorded!")
 
 
 class ResnetArgParser(argparse.ArgumentParser):
