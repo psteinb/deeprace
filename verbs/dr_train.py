@@ -119,9 +119,9 @@ def run_model(args):
                          (item.split('=') for item in args["--meta-options"].split(',')))
         deciphered.update(meta_opts)
 
-    if ("--nepochs") in args.keys():
+    if ("--nepochs") in args.keys() and int(args["--nepochs"]) > 0:
         deciphered["epochs"] = int(args["--nepochs"])
-
+    
     opts = ",".join(["{k}={v}".format(k=item[0],v=item[1]) for item in deciphered.items() ])
     deciphered['datapath'] = args["--datapath"]
     start = datetime.datetime.now()
