@@ -5,6 +5,7 @@ import datetime as dt
 class stopwatch(keras.callbacks.Callback):
     def on_train_begin(self, logs={}):
         self.train_begin = dt.datetime.now()
+        self.train_end = None
         self.epoch_durations = []
         self.epoch_start = []
         self.epoch_start_dt = []

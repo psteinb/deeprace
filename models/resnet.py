@@ -73,24 +73,32 @@ class model(base_model):
         possible_values.append(111)
         value.extend( [ name(n=i,version=2) for i in possible_values ] )
 
-        return value
+        #TODO: automate this
+        backends = []
+        from .keras_details import resnet_details as keras_resnet
+        if keras_resnet.can_train():
+            backends.append("keras")
+        from .tf_details import resnet_details as tf_resnet
+        if tf_resnet.can_train():
+            backends.append("tensorflow")
+
+        return value, backends
 
     def options(self):
         """ return a dictionary of options that can be provided to the train method besides the train and test dataset """
 
         return self.__dict__
 
-    def data_loader(self,temp_path ):
-        if self.num_classes == 10:
-            from datasets import cifar10
-            train, test = cifar10.load_data(temp_path)
-            ntrain, ntest = train[0].shape[0], test[0].shape[0]
-            return train, test, ntrain, ntest
-        elif self.num_classes == 100:
-            from datasets import cifar100
-            train, test = cifar100.load_data(temp_path)
-            ntrain, ntest = train[0].shape[0], test[0].shape[0]
-            return train, test, ntrain, ntest
+    def data_loader(self, temp_path, dataset_name = "cifar10" ):
+
+        #TODO: this if clause is non-sense, there must be a better way
+        if "keras" in self.backend.lower():
+            from .keras_details.resnet_details import data_loader
+            return data_loader(temp_path, dataset_name)
+
+        elif "tf" in self.backend.lower() or "tensorflow" in self.backend.lower():
+            from .tf_details.resnet_details import data_loader
+            return data_loader(temp_path, dataset_name)
 
 
     def train(self,train, test, datafraction = 1.):
@@ -101,9 +109,13 @@ class model(base_model):
         if datafraction > 1.0 or datafraction < 0:
             logging.error("resnet :: datafraction can only be [0,1]")
 
+        #TODO: this if clause is non-sense, there must be a better way
         if "keras" in self.backend.lower():
-            from .keras_details import resnet as keras_resnet
+            from .keras_details import resnet_details as keras_resnet
             return keras_resnet.train(train,test,datafraction,self.__dict__)
+        if "tf" in self.backend.lower() or "tensorflow" in self.backend.lower():
+            from .tf_details import resnet_details as tf_resnet
+            return tf_resnet.train(train,test,datafraction,self.__dict__)
 
     def versions(self):
 
