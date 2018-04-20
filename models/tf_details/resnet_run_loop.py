@@ -317,6 +317,8 @@ def resnet_main(flags, model_function, input_function, opts = None):
   epochs_per_eval = flags.train_epochs // flags.epochs_between_evals
   steps_per_epoch = int(opts["ntrain"]) // flags.batch_size
 
+  logging.info('starting run on %i images (%i, %i)', int(opts['ntrain']), epochs_per_eval, steps_per_epoch)
+
   ngpus = 1
   if opts:
     ngpus = int(opts["n_gpus"])

@@ -105,7 +105,7 @@ def train(train, test, datafraction, opts):
                         epochs_between_evals=1,
                         version=int(opts["version"]),
                         batch_size=opts['batch_size'],
-                        multi_gpu = opts["n_gpus"] > 1)
+                        multi_gpu = int(opts["n_gpus"]) > 1)
 
     flags = parser.parse_args(args=[])
     logging.info('handing over \n >> %s \n >>  %s',flags,opts)
