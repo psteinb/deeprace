@@ -87,7 +87,7 @@ def train(train, test, datafraction, opts):
 
     parser = run_loop.ResnetArgParser()
     
-    model_dir = os.path.join(opts['scratchspace'],'model')
+    model_dir = os.path.join(opts['scratchspace'],'cifar10_model')
     model_dir = os.path.abspath(model_dir)
     if not os.path.exists(model_dir):
         os.makedirs(model_dir)
@@ -109,6 +109,6 @@ def train(train, test, datafraction, opts):
 
     flags = parser.parse_args(args=[])
     logging.info('handing over \n >> %s \n >>  %s',flags,opts)
-    results = run_loop.resnet_main(flags, cfmain.cifar10_model_fn, cfmain.input_fn, opts)
+    history, timings = run_loop.resnet_main(flags, cfmain.cifar10_model_fn, cfmain.input_fn, opts)
 
-    return None, None, { 'num_weights' : None }
+    return history, timings, { 'num_weights' : None }

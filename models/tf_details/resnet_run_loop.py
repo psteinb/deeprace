@@ -27,6 +27,7 @@ import argparse
 import os
 import logging
 import tensorflow as tf
+import numpy as np
 
 from .utils.arg_parsers import parsers  # pylint: disable=g-bad-import-order
 from .utils.logging import hooks_helper
@@ -240,6 +241,10 @@ def resnet_model_fn(features, labels, mode, model_class,
       [tf.nn.l2_loss(v) for v in tf.trainable_variables()
        if loss_filter_fn(v.name)])
 
+  # Create a tensor named cross_entropy for logging purposes.
+  tf.identity(loss, name='train_loss')
+  tf.summary.scalar('train_loss', loss)
+
   if mode == tf.estimator.ModeKeys.TRAIN:
     global_step = tf.train.get_or_create_global_step()
 
@@ -265,11 +270,11 @@ def resnet_model_fn(features, labels, mode, model_class,
   accuracy = tf.metrics.accuracy(
       tf.argmax(labels, axis=1), predictions['classes'])
 
-  metrics = {'accuracy': accuracy}
+  metrics = {'acc': accuracy}
 
   # Create a tensor named train_accuracy for logging purposes
   tf.identity(accuracy[1], name='train_accuracy')
-  tf.summary.scalar('train_accuracy', accuracy[1])
+  tf.summary.scalar('train_acc', accuracy[1])
 
   return tf.estimator.EstimatorSpec(
       mode=mode,
@@ -307,13 +312,15 @@ def validate_batch_size_for_multi_gpu(batch_size):
 def resnet_main(flags, model_function, input_function, opts = None):
   # Using the Winograd non-fused algorithms provides a small performance boost.
   os.environ['TF_ENABLE_WINOGRAD_NONFUSED'] = '1'
+  epochs_per_eval = flags.train_epochs // flags.epochs_between_evals
+  steps_per_epoch = int(opts["ntrain"]) // flags.batch_size
 
   ngpus = 1
   if opts:
     ngpus = int(opts["n_gpus"])
 
-  if flags.batch_size != opts["batch_size"]:
-    logging.warning("batch sizes differ in model %i %i", flags.batch_size, opts["batch_size"])
+  if flags.batch_size != int(opts["batch_size"]):
+    logging.warning("batch sizes differ in model %i %s", flags.batch_size, opts["batch_size"])
 
   if ngpus > 1:
     validate_batch_size_for_multi_gpu(bs)
@@ -336,11 +343,12 @@ def resnet_main(flags, model_function, input_function, opts = None):
 
   # Set up a RunConfig to save checkpoint and set session config.
   if opts and opts["checkpoint_epochs"]:
-    run_config = tf.estimator.RunConfig().replace(save_checkpoints_secs=1e9,
+    run_config = tf.estimator.RunConfig().replace(save_checkpoints_steps=epochs_per_eval,
                                                   session_config=session_config)
   else:
-    run_config = tf.estimator.RunConfig().replace(save_checkpoints_secs=None,
-                                                  keep_checkpoint_every_n_hours=int(1e4),
+    run_config = tf.estimator.RunConfig().replace(save_checkpoints_secs=1e9,
+                                                  save_checkpoints_steps=None,
+                                                  #keep_checkpoint_every_n_hours=int(1e4),
                                                   session_config=session_config)
 
   classifier = tf.estimator.Estimator(
@@ -356,22 +364,28 @@ def resnet_main(flags, model_function, input_function, opts = None):
       })
 
   flags.hooks.append("TimePerEpochHook")
+  flags.hooks.append("CaptureTensorsHook")
+
   epoch_times = []
+  history = {}
 
-  for _ in range(flags.train_epochs // flags.epochs_between_evals):
-    train_hooks = hooks_helper.get_train_hooks(flags.hooks,
-                                               batch_size=flags.batch_size,
-                                               num_images=opts["ntrain"])
+  train_hooks = None
+  for _ in range(epochs_per_eval):
+    train_hooks = hooks_helper.get_train_hook_dict(flags.hooks,
+                                                   batch_size=flags.batch_size,
+                                                   every_n_steps=steps_per_epoch,
+                                                   tensors=['train_accuracy','train_loss'])
 
-    logging.info('Starting a training cycle.')
+    logging.info('Starting a training cycle. %s',train_hooks.keys())
 
     def input_fn_train():
       return input_function(True, flags.data_dir, flags.batch_size,
                             flags.epochs_between_evals,
                             flags.num_parallel_calls, flags.multi_gpu)
 
-    classifier.train(input_fn=input_fn_train, hooks=train_hooks,
+    classifier.train(input_fn=input_fn_train, hooks=train_hooks.values(),
                      max_steps=flags.max_train_steps)
+
 
     logging.info('Starting to evaluate.')
     # Evaluate the model and print results
@@ -385,16 +399,40 @@ def resnet_main(flags, model_function, input_function, opts = None):
     # (which is generally unimportant in those circumstances) to terminate.
     # Note that eval will run for max_train_steps each loop, regardless of the
     # global_step count.
-    eval_results = classifier.evaluate(input_fn=input_fn_eval,
+    validation_results = classifier.evaluate(input_fn=input_fn_eval,
                                        steps=flags.max_train_steps)
-    print(eval_results)
-    epoch_times.extend(train_hooks[-1].epoch_times)
 
-  if len(epoch_times):
-    logging.info("<Finished:1> %s", epoch_times)
-  else:
-    logging.warning("No timing information per epoch recorded!")
 
+    # for (k,v) in train_hooks["CaptureTensorsHook"].captured.items():
+    #   print(">> ",k,v[:5],v[-2:])
+
+    #epoch_times.extend(train_hooks["TimePerEpochHook"].epoch_durations)
+
+    for k in validation_results.keys():
+      if "global_step" in k:
+        continue
+      value = validation_results[k]
+
+      if k in history.keys():
+        history[k].append(value)
+      else:
+        history[k] = [value]
+
+    for k in train_hooks["CaptureTensorsHook"].captured.keys():
+      if k in history.keys():
+        history[k].append(train_hooks["CaptureTensorsHook"].captured[k][-1])
+      else:
+        history[k] = [train_hooks["CaptureTensorsHook"].captured[k][-1]]
+
+  #don't ask about the following I am happy I got this far
+  history["val_loss"] = history.pop("loss")
+  history["val_acc"] = history.pop("acc")
+  history["loss"] = history.pop("train_loss")
+  history["acc"] = history.pop("train_accuracy")
+
+  epoch_times = train_hooks["TimePerEpochHook"].summary()
+
+  return history,epoch_times
 
 class ResnetArgParser(argparse.ArgumentParser):
   """Arguments for configuring and running a Resnet Model.

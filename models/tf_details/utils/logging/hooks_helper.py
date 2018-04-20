@@ -32,6 +32,34 @@ _TENSORS_TO_LOG = dict((x, x) for x in ['learning_rate',
                                         'cross_entropy',
                                         'train_accuracy'])
 
+def get_train_hook_dict(name_list, **kwargs):
+  """Factory for getting a list of TensorFlow hooks for training by name.
+
+  Args:
+    name_list: a list of strings to name desired hook classes. Allowed:
+      LoggingTensorHook, ProfilerHook, ExamplesPerSecondHook, which are defined
+      as keys in HOOKS
+    kwargs: a dictionary of arguments to the hooks.
+
+  Returns:
+    dict of instantiated hooks, ready to be used in a classifier.train call.
+
+  Raises:
+    ValueError: if an unrecognized name is passed.
+  """
+
+  if not name_list:
+    return {}
+
+  train_hooks = {}
+  for name in name_list:
+    hook_name = HOOKS.get(name.strip().lower())
+    if hook_name is None:
+      raise ValueError('Unrecognized training hook requested: {}'.format(name))
+    else:
+      train_hooks[name] = hook_name(**kwargs)
+
+  return train_hooks
 
 def get_train_hooks(name_list, **kwargs):
   """Factory for getting a list of TensorFlow hooks for training by name.
@@ -121,9 +149,25 @@ def get_examples_per_second_hook(every_n_steps=100,
                                      batch_size=batch_size,
                                      warm_steps=warm_steps)
 
-def get_time_per_epoch(batch_size=32,
-                       num_images=50000,
-                       warm_steps=5,
+def get_time_per_epoch(every_n_steps,
+                       **kwargs):  # pylint: disable=unused-argument
+  """Function to get ExamplesPerSecondHook.
+
+  Args:
+    batch_size: `int`, total batch size used to calculate examples/second from
+      global time.
+    num_images: `int`, total number of images present
+    warm_steps: skip this number of steps before logging and running average.
+    kwargs: a dictionary of arguments to ExamplesPerSecondHook.
+
+  Returns:
+    Returns a Hook
+  """
+  return hooks.TimePerEpochHook(every_n_steps=every_n_steps)
+
+def get_capture_tensors(tensors=32,
+                       every_n_steps=0,
+                       at_end=False,
                        **kwargs):  # pylint: disable=unused-argument
   """Function to get ExamplesPerSecondHook.
 
@@ -136,16 +180,16 @@ def get_time_per_epoch(batch_size=32,
     kwargs: a dictionary of arguments to ExamplesPerSecondHook.
 
   Returns:
-    Returns a ProfilerHook that writes out timelines that can be loaded into
-    profiling tools like chrome://tracing.
+    Returns a Hook
   """
-  return hooks.TimePerEpochHook(batch_size=batch_size, num_images=num_images)
+  return hooks.CaptureTensorsHook(tensors, every_n_steps=every_n_steps,at_end=at_end)
 
 
 # A dictionary to map one hook name and its corresponding function
 HOOKS = {
     'loggingtensorhook': get_logging_tensor_hook,
     'timeperepochhook': get_time_per_epoch,
+    'capturetensorshook': get_capture_tensors,
     'profilerhook': get_profiler_hook,
     'examplespersecondhook': get_examples_per_second_hook,
 }

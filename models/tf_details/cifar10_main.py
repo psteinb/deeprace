@@ -212,24 +212,24 @@ def cifar10_model_fn(features, labels, mode, params):
                                          multi_gpu=params['multi_gpu'])
 
 
-def main(argv):
-  parser = resnet_run_loop.ResnetArgParser()
-  # Set defaults that are reasonable for this model.
-  parser.set_defaults(data_dir='/tmp/cifar10_data',
-                      model_dir='/tmp/cifar10_model',
-                      resnet_size=32,
-                      train_epochs=250,
-                      epochs_between_evals=10,
-                      batch_size=128)
+# def main(argv):
+#   parser = resnet_run_loop.ResnetArgParser()
+#   # Set defaults that are reasonable for this model.
+#   parser.set_defaults(data_dir='/tmp/cifar10_data',
+#                       model_dir='/tmp/cifar10_model',
+#                       resnet_size=32,
+#                       train_epochs=250,
+#                       epochs_between_evals=10,
+#                       batch_size=128)
 
-  flags = parser.parse_args(args=argv[1:])
+#   flags = parser.parse_args(args=argv[1:])
 
-  print("## recv",argv[1:])
+#   print("## recv",argv[1:])
 
-  print("## flags",type(flags), flags)
-  input_function = flags.use_synthetic_data and get_synth_input_fn() or input_fn
+#   print("## flags",type(flags), flags)
+#   input_function = flags.use_synthetic_data and get_synth_input_fn() or input_fn
   
-  resnet_run_loop.resnet_main(flags, cifar10_model_fn, input_function)
+#   resnet_run_loop.resnet_main(flags, cifar10_model_fn, input_function)
 
 
 if __name__ == '__main__':

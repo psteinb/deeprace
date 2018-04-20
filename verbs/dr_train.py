@@ -145,40 +145,70 @@ def run_model(args):
 
     hname = socket.getfqdn().split(".")[0]
     hist, timings, details = model.train(train,test,datafraction=args["--datafraction"])
+
+
     with open(args["--timings"],'w') as csvout:
 
-        runid = "{hostname}{sep}{model}{sep}{dataset}{sep}{load_dur_sec}{sep}{ntrain}{sep}{ntest}{sep}{df}{sep}{train_start}{sep}{train_end}".format(hostname=hname,
-                                                                                                                                                         model=modelname,
-                  dataset=args["--dataset"],
-                  load_dur_sec=(end-start).total_seconds(),
-                  ntrain=ntrain,
-                  ntest=ntest,
-                  df=args["--datafraction"],
-                  train_start=timings.train_begin.strftime("%Y%m%d:%H%M%S"),
-                  train_end=timings.train_end.strftime("%Y%m%d:%H%M%S"),
-                  sep=args["--separator"]
+        front_tags = "host,model,dataset,load_dur_sec,ntrain,ntest,datafraction,train_start,train_end".split(",")
+        hist_tags = "epoch,rel_epoch_start_sec,epoch_dur_sec".split(",")
+        for k in sorted(hist.keys()):
+            hist_tags.append(k)
+        rear_tags = "opts,n_model_params,versions,comment".split(",")
+        tags = front_tags + hist_tags + rear_tags
 
+        #csvout.write("host{sep}model{sep}dataset{sep}load_dur_sec{sep}ntrain{sep}ntest{sep}datafraction{sep}train_start{sep}train_end{sep}epoch{sep}rel_epoch_start_sec{sep}epoch_dur_sec{sep}loss{sep}acc{sep}val_loss{sep}val_acc{sep}top_k_catacc{sep}val_top_k_catacc{sep}opts{sep}n_model_params{sep}versions{sep}comment\n".format(sep=args["--separator"]))
+
+        header_str = args["--separator"].join(tags)
+        csvout.write(header_str+"\n")
+        logging.info("wrote %s",header_str)
+
+        front_constant = ("{sep}".join([ str("{%s}" % item) for item in front_tags ])).format(
+            host=hname,
+            model=modelname,
+            dataset=args["--dataset"],
+            load_dur_sec=(end-start).total_seconds(),
+            ntrain=ntrain,
+            ntest=ntest,
+            datafraction=args["--datafraction"],
+            train_start=timings.train_begin.strftime("%Y%m%d:%H%M%S"),
+            train_end=timings.train_end.strftime("%Y%m%d:%H%M%S"),
+            sep=args["--separator"]
         )
-        csvout.write("host{sep}model{sep}dataset{sep}load_dur_sec{sep}ntrain{sep}ntest{sep}datafraction{sep}train_start{sep}train_end{sep}epoch{sep}rel_epoch_start_sec{sep}epoch_dur_sec{sep}loss{sep}acc{sep}val_loss{sep}val_acc{sep}top_k_catacc{sep}val_top_k_catacc{sep}opts{sep}n_model_params{sep}versions{sep}comment\n".format(sep=args["--separator"]))
+        rear_constant = (args["--separator"].join([ str("{%s}" % item) for item in rear_tags ])).format(
+            opts=opts, n_model_params=details['num_weights'], versions=model.versions(), comment=args["--comment"]
+        )
+
         for i in range(len(timings.epoch_durations)):
-            line = "{constant}{sep}{num}{sep}{rel_epoch_start_sec}{sep}{epoch_dur_sec}{sep}{loss}{sep}{acc}{sep}{val_loss}{sep}{val_acc}{sep}{top_k_catacc}{sep}{val_top_k_catacc}{sep}{detail}{sep}{n_model_params}{sep}{versions}{sep}{comment}\n".format(
-                constant=runid,
-                num=int(i),
-                rel_epoch_start_sec=timings.epoch_start[i],
-                epoch_dur_sec=timings.epoch_durations[i],
-                loss=hist.history['loss'][i],
-                acc=hist.history['acc'][i],
-                val_loss=hist.history['val_loss'][i],
-                val_acc= hist.history['val_acc'][i],
-                top_k_catacc=hist.history['top_k_categorical_accuracy'][i],
-                val_top_k_catacc=hist.history['val_top_k_categorical_accuracy'][i],
-                detail=opts,
-                sep=args["--separator"],
-                n_model_params=details['num_weights'],
-                versions=model.versions(),
-                comment=args["--comment"]
-            )
-            csvout.write(line)
+
+            fields = [front_constant, str(i), str(timings.epoch_start[i]), str(timings.epoch_durations[i])]
+
+            for k in sorted(hist.keys()):
+                fields.append(str(hist[k][i]))
+
+            fields.append(rear_constant)
+
+            #([opts, details['num_weights'], model.versions(), comment=args["--comment"]))
+
+            # line = "{constant}{sep}{num}{sep}{rel_epoch_start_sec}{sep}{epoch_dur_sec}{sep}{loss}{sep}{acc}{sep}{val_loss}{sep}{val_acc}{sep}{top_k_catacc}{sep}{val_top_k_catacc}{sep}{detail}{sep}{n_model_params}{sep}{versions}{sep}{comment}\n".format(
+            #     constant=front_constant,
+            #     num=int(i),
+            #     rel_epoch_start_sec=timings.epoch_start[i],
+            #     epoch_dur_sec=timings.epoch_durations[i],
+            #     loss=hist['loss'][i],
+            #     acc=hist['acc'][i],
+            #     val_loss=hist['val_loss'][i],
+            #     val_acc= hist['val_acc'][i],
+            #     top_k_catacc=hist['top_k_categorical_accuracy'][i],
+            #     val_top_k_catacc=hist['val_top_k_categorical_accuracy'][i],
+            #     detail=opts,
+            #     sep=args["--separator"],
+            #     n_model_params=details['num_weights'],
+            #     versions=model.versions(),
+            #     comment=args["--comment"]
+            # )
+
+            line = args["--separator"].join(fields)
+            csvout.write(line+"\n")
 
         csvout.close()
         logging.info('wrote %s',args["--timings"])

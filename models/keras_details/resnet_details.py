@@ -463,4 +463,4 @@ def train(train, test, datafraction, optsdict):
 
     model.save_weights(os.path.join(optsdict["scratchspace"],weights_fname))
 
-    return hist, stopw, { 'num_weights' : model_size(model) }
+    return hist.history, stopw, { 'num_weights' : model_size(model) }
