@@ -327,7 +327,7 @@ def resnet_main(flags, model_function, input_function, opts = None):
     logging.warning("batch sizes differ in model %i %s", flags.batch_size, opts["batch_size"])
 
   if ngpus > 1:
-    validate_batch_size_for_multi_gpu(bs)
+    validate_batch_size_for_multi_gpu(flags.batch_size)
     # There are two steps required if using multi-GPU: (1) wrap the model_fn,
     # and (2) wrap the optimizer. The first happens here, and (2) happens
     # in the model_fn itself when the optimizer is defined.
