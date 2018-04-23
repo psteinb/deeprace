@@ -33,7 +33,7 @@ def can_train():
         warnings.simplefilter(action='ignore', category=FutureWarning)
 
         from tensorflow import __version__ as tfv
-        required = "1.7.0"
+        required = "1.6.0"
 
         #only require major and minor release number as the patch number may contain 'rc' etc
         if versiontuple(tfv,2) >= versiontuple(required,2):
@@ -110,5 +110,10 @@ def train(train, test, datafraction, opts):
     flags = parser.parse_args(args=[])
     logging.info('handing over \n >> %s \n >>  %s',flags,opts)
     history, timings = run_loop.resnet_main(flags, cfmain.cifar10_model_fn, cfmain.input_fn, opts)
+
+    if not opts['checkpoint_epochs']:
+        logging.info("unable to ensure pure no-checkpoint behavior with resnet in pure tensorflow, removing result directory")
+        import shutil
+        shutil.rmtree(model_dir)
 
     return history, timings, { 'num_weights' : None }

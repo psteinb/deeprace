@@ -121,7 +121,7 @@ class model(base_model):
 
         value = ""
 
-        if "keras" in self.backend.lower():
+        if self.backend.lower().startswith("keras"):
 
             import keras
             from keras import backend as K
@@ -143,7 +143,7 @@ class model(base_model):
 
         else:
 
-            if "tensorflow" in self.backend.lower():
+            if self.backend.lower() == "tensorflow" or self.backend.lower() == "tf":
                 import tensorflow as tf
                 value = "tensorflow:{ver}".format(ver=tf.__version__)
             else:
