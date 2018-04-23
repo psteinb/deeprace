@@ -7,7 +7,7 @@ export HIP_VISIBLE_DEVICES=3
 for rep in `seq 1 10`;
 
 do
-    for bs in 32 64 128 256 512;
+    for bs in 256 512;
 	do
         if [ -e /deeprace/scripts/rocm-short/resnet56v1_bs${bs}_rocm_${rep}.tsv ];then
             echo "skipping batch_size=${bs} run ${rep}/10"

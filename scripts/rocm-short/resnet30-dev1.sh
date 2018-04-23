@@ -2,12 +2,12 @@
 
 cd /deeprace/
 
-export HIP_VISIBLE_DEVICES=0
+export HIP_VISIBLE_DEVICES=1
 
 for r in `seq 1 10`;
 do
 
-     for i in 32 64 128 256 512;
+     for i in 256 512;
 	 do
          if [ -e /deeprace/scripts/rocm-short/resnet32v1_bs${i}_rocm_${r}.tsv ];then
              echo "skipping batch_size=$i run ${r}/10 as it already exists"
