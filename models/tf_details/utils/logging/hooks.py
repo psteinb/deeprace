@@ -50,7 +50,7 @@ class timing_summary:
 class TimePerEpochHook(tf.train.SessionRunHook):
   def __init__(self,
                every_n_steps,
-               warm_steps=0):
+               warm_steps=-1):
 
     self.every_n_steps = every_n_steps
     logging.info("TimePerEpochHook triggering every %i steps",every_n_steps)
@@ -112,8 +112,8 @@ class TimePerEpochHook(tf.train.SessionRunHook):
     global_step = run_values.results
     sess = run_context.session
 
-
-    if self._timer.should_trigger_for_step(global_step) and global_step > self._warm_steps:
+    #if self._timer.should_trigger_for_step(global_step) and global_step > self._warm_steps:
+    if self._step % self.every_n_steps == 0:
       elapsed_time, elapsed_steps = self._timer.update_last_triggered_step(
           global_step)
       if elapsed_time is not None:
@@ -124,6 +124,8 @@ class TimePerEpochHook(tf.train.SessionRunHook):
         tf.logging.info('Epoch [%g steps]: %g (%s)', self._total_steps,self._epoch_train_time,str(self.epoch_durations))
 
         self._epoch_train_time = 0
+      else:
+        logging.warning("step %i, elapsed_time is None!", global_step)
 
 
 

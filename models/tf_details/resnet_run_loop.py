@@ -327,6 +327,7 @@ def resnet_main(flags, model_function, input_function, opts = None):
     logging.warning("batch sizes differ in model %i %s", flags.batch_size, opts["batch_size"])
 
   if ngpus > 1:
+    steps_per_epoch -= 1
     validate_batch_size_for_multi_gpu(flags.batch_size)
     # There are two steps required if using multi-GPU: (1) wrap the model_fn,
     # and (2) wrap the optimizer. The first happens here, and (2) happens
@@ -406,12 +407,6 @@ def resnet_main(flags, model_function, input_function, opts = None):
     # global_step count.
     validation_results = classifier.evaluate(input_fn=input_fn_eval,
                                        steps=flags.max_train_steps)
-
-
-    # for (k,v) in train_hooks["CaptureTensorsHook"].captured.items():
-    #   print(">> ",k,v[:5],v[-2:])
-
-    #epoch_times.extend(train_hooks["TimePerEpochHook"].epoch_durations)
 
     for k in validation_results.keys():
       if "global_step" in k:

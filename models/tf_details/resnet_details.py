@@ -111,4 +111,9 @@ def train(train, test, datafraction, opts):
     logging.info('handing over \n >> %s \n >>  %s',flags,opts)
     history, timings = run_loop.resnet_main(flags, cfmain.cifar10_model_fn, cfmain.input_fn, opts)
 
+    if not opts['checkpoint_epochs']:
+        logging.info("unable to ensure pure no-checkpoint behavior with resnet in pure tensorflow, removing result directory")
+        import shutil
+        shutil.rmtree(model_dir)
+
     return history, timings, { 'num_weights' : None }
