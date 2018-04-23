@@ -1,4 +1,5 @@
-# DeepRace
+# DeepRace [![DOI](https://zenodo.org/badge/123592478.svg)](https://zenodo.org/badge/latestdoi/123592478)
+
 
 A small python3 based benchmark tool to compare ([Keras](keras.io)) Deep Learning Models. This project is currently under development. Please expect the usage to change without prior notice.
 
@@ -104,4 +105,5 @@ Currently, the benchmark relies on keras and tensorflow as a backend. This is su
 
 ## Known Issues
 
-- the parallel model in keras does not appear to work with tensorflow 1.3
+- the parallel model in keras does not appear to work with tensorflow 1.3, only works with tensorflow 1.5 and above
+

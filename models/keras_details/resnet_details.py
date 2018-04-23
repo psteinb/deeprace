@@ -3,6 +3,32 @@ import math
 import numpy as np
 import os
 import time
+import importlib
+
+def data_loader(temp_path, dsname = "cifar10" ):
+
+    if "cifar100" in dsname.lower():
+        logging.error("resnet :: cifar100 is not supported yet")
+        sys.exit(1)
+        #TODO likely to yield an error
+        # from datasets import cifar100
+        # train, test = cifar100.load_data(temp_path)
+        # ntrain, ntest = train[0].shape[0], test[0].shape[0]
+        # return train, test, ntrain, ntest
+    elif "cifar10" in dsname.lower():
+        from datasets import cifar10
+        train, test = cifar10.load_data(temp_path)
+        ntrain, ntest = train[0].shape[0], test[0].shape[0]
+        return train, test, ntrain, ntest
+
+def can_train():
+
+    keras_found = importlib.util.find_spec('keras')
+
+    if keras_found:
+        return True
+    else:
+        return False
 
 def compute_depth(n=3,version=1):
     value = 0
@@ -437,4 +463,4 @@ def train(train, test, datafraction, optsdict):
 
     model.save_weights(os.path.join(optsdict["scratchspace"],weights_fname))
 
-    return hist, stopw, { 'num_weights' : model_size(model) }
+    return hist.history, stopw, { 'num_weights' : model_size(model) }
