@@ -33,7 +33,7 @@ def can_train():
         warnings.simplefilter(action='ignore', category=FutureWarning)
 
         from tensorflow import __version__ as tfv
-        required = "1.7.0"
+        required = "1.6.0"
 
         #only require major and minor release number as the patch number may contain 'rc' etc
         if versiontuple(tfv,2) >= versiontuple(required,2):
