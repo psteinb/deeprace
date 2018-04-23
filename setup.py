@@ -50,7 +50,7 @@ def read(fname):
 
 setup(
     name='deeprace',
-    version="0.1.0",
+    version="0.2.0",
     description='benchmark suite to time deep learning training in a framework agnostic fashion',
     long_description=read("README.rst"),
     author='Peter Steinbach',
