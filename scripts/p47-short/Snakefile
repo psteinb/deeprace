@@ -1,0 +1,81 @@
+import itertools
+
+suffix = ".tsv"
+nreps = int(10)
+nepochs = int(15)
+
+resnet_batch_sizes = [ (1 << item) for item in range(5,10) ]
+models = "resnet32v1,resnet56v1,resnet164v2".split(",")
+
+expected_stems = []
+combinations = itertools.product(resnet_batch_sizes,models)
+
+for c in combinations:
+    for it in range(nreps):
+        expected_stems.append("{model}-{bs}-short-ngpu1_{niter:02d}{suffix}".format(model=c[1],bs=c[0],niter=it,suffix=suffix))
+    # for it in range(4):
+    #     for g in range(4):
+    #         expected_stems.append("{model}-{bs}-short-ngpu{g}of4_{niter:02d}{suffix}".format(g=g,model=c[1],bs=c[0],niter=it,suffix=suffix))
+
+rule all:
+    input:
+        expected_stems
+
+rule prepare:
+    output:
+        [ item.replace(suffix,".log") for item in expected_stems ]
+    shell: "touch {output}"
+
+rule short:
+    input:
+        "{model}-{bs}-short-ngpu1_{iteration}.log"
+
+    output:
+        "{model}-{bs}-short-ngpu1_{iteration}"+suffix
+
+    params:
+        repochs = nepochs
+
+    resources:
+        ngpus=4 #block the other GPUs
+
+    shell: """
+    export HIP_VISIBLE_DEVICES=0
+    echo python3 ./deeprace.py train -O "batch_size={wildcards.bs}" -c "docker,mi25:1" -t {output} -e {params.repochs} {wildcards.model} >> {input}
+    date > {output}
+    """
+
+# rule shortof4:
+#     input:
+#         [ "{model}-{bs}-short-ngpu"+str(i)+"of4_{iteration}.log" for i in range(4) ]
+#     output:
+#         [ "{model}-{bs}-short-ngpu"+str(i)+"of4_{iteration}.tsv" for i in range(4) ]
+#     resources:
+#         ngpus=4
+#     shell: """
+#     PIDS=''
+#     export HIP_VISIBLE_DEVICES=0
+#     echo python3 ./deeprace.py train -O "batch_size={wildcards.bs}" -c "docker,mi25:1,gpu:0" -t {wildcards.model}-{wildcards.bs}-short-ngpu$gof4_{wildcards.iteration}.tsv -e {nepochs} {wildcards.model} > {wildcards.model}-{wildcards.bs}-short-ngpu0of4_{wildcards.iteration}.log 2>&1 &
+#     PIDS="$PIDS $?"
+#     export HIP_VISIBLE_DEVICES=1
+#     echo python3 ./deeprace.py train -O "batch_size={wildcards.bs}" -c "docker,mi25:1,gpu:1" -t {wildcards.model}-{wildcards.bs}-short-ngpu$gof4_{wildcards.iteration}.tsv -e {nepochs} {wildcards.model} > {wildcards.model}-{wildcards.bs}-short-ngpu1of4_{wildcards.iteration}.log 2>&1 &
+#     PIDS="$PIDS $?"
+#     export HIP_VISIBLE_DEVICES=2
+#     echo python3 ./deeprace.py train -O "batch_size={wildcards.bs}" -c "docker,mi25:1,gpu:2" -t {wildcards.model}-{wildcards.bs}-short-ngpu$gof4_{wildcards.iteration}.tsv -e {nepochs} {wildcards.model} > {wildcards.model}-{wildcards.bs}-short-ngpu2of4_{wildcards.iteration}.log 2>&1 &
+#     PIDS="$PIDS $?"
+#     export HIP_VISIBLE_DEVICES=3
+#     echo python3 ./deeprace.py train -O "batch_size={wildcards.bs}" -c "docker,mi25:1,gpu:3" -t {wildcards.model}-{wildcards.bs}-short-ngpu$gof4_{wildcards.iteration}.tsv -e {nepochs} {wildcards.model} > {wildcards.model}-{wildcards.bs}-short-ngpu3of4_{wildcards.iteration}.log 2>&1 &
+#     PIDS="$PIDS $?"
+#     wait $PIDS
+#     touch {output}
+#         """
+
+#ruleorder: short > shortof4
+
+rule info:
+    run:
+        print("expected inputs:\n",rules.prepare.output)
+        print("expected outputs:\n","\n".join(expected_stems))
+
+rule clean:
+    shell: "rm -rfv *log *tsv"
