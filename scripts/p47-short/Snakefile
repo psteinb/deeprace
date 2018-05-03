@@ -41,8 +41,8 @@ rule short:
 
     shell: """
     export HIP_VISIBLE_DEVICES=0
-    echo python3 ./deeprace.py train -O "batch_size={wildcards.bs}" -c "docker,mi25:1" -t {output} -e {params.repochs} {wildcards.model} >> {input}
-    date > {output}
+    python3 ./deeprace.py train -O "batch_size={wildcards.bs}" -c "docker,mi25:1" -t {output} -e {params.repochs} {wildcards.model} >> {input}
+
     """
 
 # rule shortof4:
