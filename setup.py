@@ -6,7 +6,7 @@ from setuptools.command.test import test as TestCommand
 
 
 REQUIRES = [
-    'docopt',
+    'docopt','snakemake'
 ]
 
 class PyTest(TestCommand):
