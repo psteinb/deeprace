@@ -1,5 +1,6 @@
 import itertools
 import os
+import sys
 
 suffix = ".tsv"
 nreps = int(10)
@@ -8,13 +9,24 @@ nepochs = int(15)
 resnet_batch_sizes = [ (1 << item) for item in range(5,10) ]
 models = "resnet32v1,resnet56v1,resnet164v2".split(",")
 
-snakefile_loc = os.path.abspath(__file__)
-dr_app = os.path.abspath(os.path.join(snakefile_loc,"../.."))
+JOBDIR=os.path.abspath(os.path.curdir)
+if JOBDIR[-1] != "/": # this checks if jobdir ends with slash if not it adds a slash
+   JOBDIR+="/"
+dr_dir = os.path.abspath(os.path.join(JOBDIR,"../.."))
+if os.path.exists(os.path.join(dr_dir,"deeprace.py")):
+    dr_app = os.path.join(dr_dir,"deeprace.py")
+else:
+    dr_app = os.path.join(os.environ["HOME"],"development","deeprace","deeprace.py")
+    if not os.path.exists(dr_app):
+        print("UNABLE TO FIND deeprace.py")
+        sys.exit(1)
 
 expected_stems = []
 combinations = itertools.product(resnet_batch_sizes,models)
 
 for c in combinations:
+    if int(c[0]) == 512 and c[1] == "resnet164v2":
+        continue
     for it in range(nreps):
         expected_stems.append("{model}-{bs}-short-ngpu1_{niter:02d}{suffix}".format(model=c[1],bs=c[0],niter=it,suffix=suffix))
     for it in range(4):
@@ -38,14 +50,14 @@ rule short:
         "{model}-{bs}-short-ngpu1_{iteration}"+suffix
 
     params:
-        repochs = nepochs
+        repochs = nepochs, app = dr_app
 
     resources:
         ngpus=4 #block the other GPUs
 
     shell: """
     export HIP_VISIBLE_DEVICES=0
-    python3 ~/development/deeprace/deeprace.py train -O "batch_size={wildcards.bs}" -c "docker,mi25:1" -t {output} -e {params.repochs} {wildcards.model} >> {input}
+    python3 {params.app} train -O "batch_size={wildcards.bs}" -c "docker,mi25:1" -t {output} -e {params.repochs} {wildcards.model} >> {input} 2>&1
 
     """
 
@@ -66,18 +78,19 @@ rule shortof4:
         def submit(gpu_id):
             thisenv = os.environ
             thisenv['HIP_VISIBLE_DEVICES'] = gpu_id
-            cmd = "echo python3 {dr_app} train -O \"batch_size={bs}\" -c \"docker,mi25:1,gpu:{gpu_id}\" -t {model}-{bs}-short-ngpu{gpu_id}of4_{iteration}.tsv -e {nepochs} {model}".format(dr_app=dr_app,bs=wildcards["bs"],gpu_id=gpu_id,model=wildcards["model"],nepochs=params['repochs'])
-            return subprocess.check_output(shlex.split(cmd), shell=True, env=thisenv)
+            cmd = "python3 {dr_app} train -O \"batch_size={bs}\" -c \"docker,mi25:1,gpu:{gpu_id}\" -t {model}-{bs}-short-ngpu{gpu_id}of4_{iteration}.tsv -e {nepochs} {model}".format(dr_app=dr_app,bs=wildcards["bs"],gpu_id=gpu_id,model=wildcards["model"],nepochs=params['repochs'])
+            return subprocess.check_output(shlex.split(cmd), shell=True, env=thisenv,stderr=subprocess.STDOUT)
 
-        pool = multiprocessing.Pool(workers=resources["ngpus"])
-        outputs = pool.map(submit,range(resources["ngpus"]))
+        pool = multiprocessing.Pool(int(resources["ngpus"]))
+        outputs = pool.map(submit,range(int(resources["ngpus"])))
 
 ruleorder: short > shortof4
 
 rule info:
     run:
-        print("expected inputs:\n",rules.prepare.output)
-        print("expected outputs:\n","\n".join(expected_stems))
+        print("location: ",dr_app)
+        print("expected inputs:\n",rules.prepare.output[:10],"...", rules.prepare.output[-10:])
+        print("expected outputs:\n",expected_stems[:10], "...",expected_stems[-10:])
 
 rule clean:
     shell: "rm -rfv *log *tsv"
