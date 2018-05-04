@@ -24,6 +24,7 @@ import importlib
 import logging
 import datetime
 import socket
+import versioneer
 
 try:
     from importlib import util as ilib_util
@@ -153,10 +154,9 @@ def run_model(args):
         hist_tags = "epoch,rel_epoch_start_sec,epoch_dur_sec".split(",")
         for k in sorted(hist.keys()):
             hist_tags.append(k)
-        rear_tags = "opts,n_model_params,versions,comment".split(",")
+        rear_tags = "opts,n_model_params,versions,deerace_version,comment".split(",")
         tags = front_tags + hist_tags + rear_tags
 
-        #csvout.write("host{sep}model{sep}dataset{sep}load_dur_sec{sep}ntrain{sep}ntest{sep}datafraction{sep}train_start{sep}train_end{sep}epoch{sep}rel_epoch_start_sec{sep}epoch_dur_sec{sep}loss{sep}acc{sep}val_loss{sep}val_acc{sep}top_k_catacc{sep}val_top_k_catacc{sep}opts{sep}n_model_params{sep}versions{sep}comment\n".format(sep=args["--separator"]))
 
         header_str = args["--separator"].join(tags)
         csvout.write(header_str+"\n")
@@ -175,7 +175,11 @@ def run_model(args):
             sep=args["--separator"]
         )
         rear_constant = (args["--separator"].join([ str("{%s}" % item) for item in rear_tags ])).format(
-            opts=opts, n_model_params=details['num_weights'], versions=model.versions(), comment=args["--comment"]
+            opts=opts,
+            n_model_params=details['num_weights'],
+            versions=model.versions(),
+            deeprace_version=versioneer.get_version(),
+            comment=args["--comment"]
         )
 
         for i in range(len(timings.epoch_durations)):

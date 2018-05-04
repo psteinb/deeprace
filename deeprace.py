@@ -30,9 +30,9 @@ import logging
 import socket
 import datetime
 from subprocess import call
+import versioneer
 
-
-__version__ = "0.2.0"
+__version__ = versioneer.get_version()
 __author__ = "Peter Steinbach"
 __license__ = "BSD"
 
