@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
+from __future__ import unicode_literals, print_function
+
+import versioneer
+
+__doc__ = """
 usage: deeprace [--version] [--help] [--verbose] [--loglevel <level>] <command> [<args>...]
 
 options:
    -h, --help                           Show this help message
-   -v, --version                        Print the version of deeprace
+   -v, --version                        Print the version of deeprace ({version})
    -V, --verbose                        Run in verbose mode
    -L <level> --loglevel=<level>        logging level to use [default: info]
 
@@ -15,9 +19,11 @@ The most commonly used git commands are:
    describe  show available parameters for given model
 
 See 'deeprace help <command>' for more information on a specific command.
-"""
 
-from __future__ import unicode_literals, print_function
+For more information and bug reports, please see
+https://github.com/psteinb/deeprace
+""".format(version=versioneer.get_version().split("+")[0])
+
 from docopt import docopt
 import os
 import sys
@@ -30,7 +36,6 @@ import logging
 import socket
 import datetime
 from subprocess import call
-import versioneer
 
 __version__ = versioneer.get_version()
 __author__ = "Peter Steinbach"
@@ -65,6 +70,9 @@ def main():
             verb = importlib.import_module('verbs.dr_'+args['<args>'][0])
             print(verb.__doc__)
         else:
+            logging.info("deeprace (%s)", versioneer.get_version())
+            logging.info("for more information, see https://github.com/psteinb/deeprace\n")
+
             sys.exit(call([sys.executable, __file__, '--help']))
 
     elif args['<command>'] == 'train':
