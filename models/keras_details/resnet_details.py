@@ -21,12 +21,35 @@ def data_loader(temp_path, dsname = "cifar10" ):
         ntrain, ntest = train[0].shape[0], test[0].shape[0]
         return train, test, ntrain, ntest
 
+#thanks to https://stackoverflow.com/a/11887825
+def versiontuple(v, version_index = -1):
+    """ convert a version string to a tuple of integers
+    argument <v> is the version string, <version_index> refers o how many '.' splitted shall be returned
+
+    example:
+    versiontuple("1.7.0") -> tuple([1,7,0])
+    versiontuple("1.7.0", 2) -> tuple([1,7])
+    versiontuple("1.7.0", 1) -> tuple([1])
+
+    """
+
+    temp_list = map(int, (v.split(".")))
+    return tuple(temp_list)[:version_index]
+
 def can_train():
 
     keras_found = importlib.util.find_spec('keras')
 
     if keras_found:
-        return True
+        from keras import __version__ as kv
+        max_version = "2.1.5"
+        min_version = "2.1.0"
+
+        if versiontuple(kv,3) >= versiontuple(min_version,3) and versiontuple(kv,3) <= versiontuple(max_version,3):
+            return True
+        else:
+            logging.warning("your keras version %s is not supported (%s - %s)",str(kv),minv,maxv)
+            return False
     else:
         return False
 
