@@ -154,7 +154,7 @@ def run_model(args):
         hist_tags = "epoch,rel_epoch_start_sec,epoch_dur_sec".split(",")
         for k in sorted(hist.keys()):
             hist_tags.append(k)
-        rear_tags = "opts,n_model_params,versions,deerace_version,comment".split(",")
+        rear_tags = "opts,n_model_params,versions,deeprace_version,comment".split(",")
         tags = front_tags + hist_tags + rear_tags
 
 
@@ -191,28 +191,9 @@ def run_model(args):
 
             fields.append(rear_constant)
 
-            #([opts, details['num_weights'], model.versions(), comment=args["--comment"]))
-
-            # line = "{constant}{sep}{num}{sep}{rel_epoch_start_sec}{sep}{epoch_dur_sec}{sep}{loss}{sep}{acc}{sep}{val_loss}{sep}{val_acc}{sep}{top_k_catacc}{sep}{val_top_k_catacc}{sep}{detail}{sep}{n_model_params}{sep}{versions}{sep}{comment}\n".format(
-            #     constant=front_constant,
-            #     num=int(i),
-            #     rel_epoch_start_sec=timings.epoch_start[i],
-            #     epoch_dur_sec=timings.epoch_durations[i],
-            #     loss=hist['loss'][i],
-            #     acc=hist['acc'][i],
-            #     val_loss=hist['val_loss'][i],
-            #     val_acc= hist['val_acc'][i],
-            #     top_k_catacc=hist['top_k_categorical_accuracy'][i],
-            #     val_top_k_catacc=hist['val_top_k_categorical_accuracy'][i],
-            #     detail=opts,
-            #     sep=args["--separator"],
-            #     n_model_params=details['num_weights'],
-            #     versions=model.versions(),
-            #     comment=args["--comment"]
-            # )
-
             line = args["--separator"].join(fields)
             csvout.write(line+"\n")
+            logging.debug("+ %s",line)
 
         csvout.close()
         logging.info('wrote %s',args["--timings"])

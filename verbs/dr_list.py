@@ -59,7 +59,7 @@ def print_models():
     for k,v in models.items():
         if len(v) < 2:
             continue
-        logging.info("%s (backends: %s)" % (" ".join(v[0]), v[-1]))
+        logging.info("%s (backends: %s)" % (" ".join(v[0]), ",".join( v[-1])))
 
     return 0
 

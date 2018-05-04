@@ -76,11 +76,16 @@ class model(base_model):
         #TODO: automate this
         backends = []
         from .keras_details import resnet_details as keras_resnet
-        if keras_resnet.can_train():
-            backends.append("keras")
+        if keras_resnet.can_train() != []:
+            backends.extend(keras_resnet.can_train())
+
+        from .keras_details import tfkeras_resnet_details as tfkeras_resnet
+        if tfkeras_resnet.can_train() != []:
+            backends.extend(tfkeras_resnet.can_train())
+
         from .tf_details import resnet_details as tf_resnet
-        if tf_resnet.can_train():
-            backends.append("tensorflow")
+        if tf_resnet.can_train() != []:
+            backends.extend(tf_resnet.can_train())
 
         return value, backends
 
@@ -92,12 +97,16 @@ class model(base_model):
     def data_loader(self, temp_path, dataset_name = "cifar10" ):
 
         #TODO: this if clause is non-sense, there must be a better way
-        if "keras" in self.backend.lower():
+        if "keras" == self.backend.lower():
             from .keras_details.resnet_details import data_loader
             return data_loader(temp_path, dataset_name)
 
-        elif "tf" in self.backend.lower() or "tensorflow" in self.backend.lower():
+        elif "tf" == self.backend.lower() or "tensorflow" == self.backend.lower():
             from .tf_details.resnet_details import data_loader
+            return data_loader(temp_path, dataset_name)
+
+        elif "tf.keras" == self.backend.lower() or "tensorflow.keras" == self.backend.lower():
+            from .keras_details.tfkeras_resnet_details import data_loader
             return data_loader(temp_path, dataset_name)
 
 
@@ -110,12 +119,16 @@ class model(base_model):
             logging.error("resnet :: datafraction can only be [0,1]")
 
         #TODO: this if clause is non-sense, there must be a better way
-        if "keras" in self.backend.lower():
+        if "keras" == self.backend.lower():
             from .keras_details import resnet_details as keras_resnet
             return keras_resnet.train(train,test,datafraction,self.__dict__)
-        if "tf" in self.backend.lower() or "tensorflow" in self.backend.lower():
+        if "tf" == self.backend.lower() or "tensorflow" == self.backend.lower():
             from .tf_details import resnet_details as tf_resnet
             return tf_resnet.train(train,test,datafraction,self.__dict__)
+
+        if "tf.keras" == self.backend.lower() or "tensorflow.keras" == self.backend.lower():
+            from .keras_details import tfkeras_resnet_details as tfkeras_resnet
+            return tfkeras_resnet.train(train,test,datafraction,self.__dict__)
 
     def versions(self):
 
@@ -146,6 +159,9 @@ class model(base_model):
             if self.backend.lower() == "tensorflow" or self.backend.lower() == "tf":
                 import tensorflow as tf
                 value = "tensorflow:{ver}".format(ver=tf.__version__)
+            elif self.backend.lower() == "tensorflow.keras" or self.backend.lower() == "tf.keras":
+                import tensorflow as tf
+                value = "tensorflow:{ver},tf.keras:{kver}".format(ver=tf.__version__,kver=tf.keras.__version__)
             else:
                 value = "unknown:0.0"
 
