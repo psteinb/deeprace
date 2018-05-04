@@ -7,26 +7,12 @@ import importlib
 
 import tarfile
 from six.moves import urllib
-
-#thanks to https://stackoverflow.com/a/11887825
-def versiontuple(v, version_index = -1):
-    """ convert a version string to a tuple of integers
-    argument <v> is the version string, <version_index> refers o how many '.' splitted shall be returned
-
-    example:
-    versiontuple("1.7.0") -> tuple([1,7,0])
-    versiontuple("1.7.0", 2) -> tuple([1,7])
-    versiontuple("1.7.0", 1) -> tuple([1])
-
-    """
-
-    temp_list = map(int, (v.split(".")))
-    return tuple(temp_list)[:version_index]
+from ..tools.utils import versiontuple
 
 def can_train():
 
     tf_found = importlib.util.find_spec('tensorflow')
-
+    available_backends = []
     if tf_found:
         #thanks to https://github.com/pydata/pandas/issues/2841
         import warnings
@@ -37,11 +23,9 @@ def can_train():
 
         #only require major and minor release number as the patch number may contain 'rc' etc
         if versiontuple(tfv,2) >= versiontuple(required,2):
-            return True
-        else:
-            return False
-    else:
-        return False
+            available_backends.append("tensorflow")
+
+    return available_backends
 
 def data_loader(path, dsname = "cifar10"):
 

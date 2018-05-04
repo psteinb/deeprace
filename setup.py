@@ -3,10 +3,10 @@ import re
 import sys
 from setuptools import setup
 from setuptools.command.test import test as TestCommand
-
+import versioneer
 
 REQUIRES = [
-    'docopt','snakemake'
+    'docopt','snakemake','versioneer'
 ]
 
 class PyTest(TestCommand):
@@ -50,7 +50,7 @@ def read(fname):
 
 setup(
     name='deeprace',
-    version="0.2.0",
+    version=versioneer.get_version(),
     description='benchmark suite to time deep learning training in a framework agnostic fashion',
     long_description=read("README.rst"),
     author='Peter Steinbach',
@@ -81,5 +81,5 @@ setup(
         ]
     },
     tests_require=['pytest'],
-    cmdclass={'test': PyTest}
+    cmdclass={'test': PyTest, 'version' : versioneer.get_cmdclass()}
 )

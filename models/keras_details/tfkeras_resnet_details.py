@@ -4,7 +4,9 @@ import numpy as np
 import os
 import time
 import importlib
+
 from ..tools.utils import versiontuple
+
 
 def data_loader(temp_path, dsname = "cifar10" ):
 
@@ -17,28 +19,29 @@ def data_loader(temp_path, dsname = "cifar10" ):
         # ntrain, ntest = train[0].shape[0], test[0].shape[0]
         # return train, test, ntrain, ntest
     elif "cifar10" in dsname.lower():
-        from datasets import cifar10
-        train, test = cifar10.load_data(temp_path)
+        import tensorflow as tf
+        #from tf.keras.datasets import cifar10
+        train, test = tf.keras.datasets.cifar10.load_data()
         ntrain, ntest = train[0].shape[0], test[0].shape[0]
         return train, test, ntrain, ntest
-
 
 
 def can_train():
     import warnings
     warnings.simplefilter(action='ignore', category=FutureWarning)
 
-    keras_found = importlib.util.find_spec('keras')
+    tf_found = importlib.util.find_spec('tensorflow')
 
     available_backends = []
 
-    if keras_found:
-        from keras import __version__ as kv
-        max_version = "2.1.5"
+    if tf_found:
+        import tensorflow as tf
+        tf_version = tf.__version__
+        tfkeras_version = tf.keras.__version__
+        tfkeras_clean_version = tf.keras.__version__.replace("-tf","")
         min_version = "2.1.0"
-
-        if versiontuple(kv,3) >= versiontuple(min_version,3) and versiontuple(kv,3) <= versiontuple(max_version,3):
-            available_backends.append("keras")
+        if versiontuple(tfkeras_clean_version,3) >= versiontuple(min_version,3):
+            available_backends.append("tensorflow.keras")
         else:
             logging.debug("your keras version %s is not supported (%s - %s)",str(kv),minv,maxv)
 
@@ -61,19 +64,23 @@ def train(train, test, datafraction, optsdict):
     if datafraction > 1.0 or datafraction < 0:
         logging.error("resnet :: datafraction can only be [0,1]")
 
-    import keras
-    from keras.layers import Dense, Conv2D, BatchNormalization, Activation
-    from keras.layers import AveragePooling2D, Input, Flatten
-    from keras.optimizers import Adam
-    from keras.callbacks import ModelCheckpoint, LearningRateScheduler
-    from keras.callbacks import ReduceLROnPlateau
-    from keras.preprocessing.image import ImageDataGenerator
-    from keras.regularizers import l2
-    from keras import backend as K
-    from keras.models import Model
+    import tensorflow as tf
+
+    AveragePooling2D = tf.keras.layers.AveragePooling2D
+    Input = tf.keras.layers.Input
+    Flatten = tf.keras.layers.Flatten
+    Adam = tf.keras.optimizers.Adam
+    ModelCheckpoint       = tf.keras.callbacks.ModelCheckpoint
+    LearningRateScheduler = tf.keras.callbacks.LearningRateScheduler
+    ReduceLROnPlateau = tf.keras.callbacks.ReduceLROnPlateau
+    ImageDataGenerator = tf.keras.preprocessing.image.ImageDataGenerator
+    l2 = tf.keras.regularizers.l2
+    K = tf.keras
+    Model = tf.keras.models.Model
+    multi_gpu_model = tf.keras.utils.multi_gpu_model
+
     from models.keras_details.callbacks import stopwatch
     from models.keras_details.model_utils import model_size
-    from keras.utils import multi_gpu_model
 
     batch_size=int(optsdict["batch_size"])
     epochs=int(optsdict["epochs"])
@@ -131,8 +138,8 @@ def train(train, test, datafraction, optsdict):
     logging.info('y_test shape: %s, %i samples', str(y_test.shape),y_test.shape[0])
 
     # Convert class vectors to binary class matrices.
-    y_train = keras.utils.to_categorical(y_train, optsdict["num_classes"])
-    y_test = keras.utils.to_categorical(y_test, optsdict["num_classes"])
+    y_train = tf.keras.utils.to_categorical(y_train, optsdict["num_classes"])
+    y_test = tf.keras.utils.to_categorical(y_test, optsdict["num_classes"])
 
 
     def lr_schedule(epoch):
@@ -167,13 +174,13 @@ def train(train, test, datafraction, optsdict):
                      activation='relu',
                      batch_normalization=True,
                      conv_first=True):
-        """2D Convolution-Batch Normalization-Activation stack builder
+        """2D Convolution-Batch Normalization-tf.keras.layers.Activation stack builder
 
         # Arguments
             inputs (tensor): input tensor from input image or previous layer
-            num_filters (int): Conv2D number of filters
-            kernel_size (int): Conv2D square kernel dimensions
-            strides (int): Conv2D square stride dimensions
+            num_filters (int): tf.keras.layers.Conv2D number of filters
+            kernel_size (int): tf.keras.layers.Conv2D square kernel dimensions
+            strides (int): tf.keras.layers.Conv2D square stride dimensions
             activation (string): activation name
             batch_normalization (bool): whether to include batch normalization
             conv_first (bool): conv-bn-activation (True) or
@@ -182,7 +189,7 @@ def train(train, test, datafraction, optsdict):
         # Returns
             x (tensor): tensor as input to the next layer
         """
-        conv = Conv2D(num_filters,
+        conv = tf.keras.layers.Conv2D(num_filters,
                       kernel_size=kernel_size,
                       strides=strides,
                       padding='same',
@@ -193,14 +200,14 @@ def train(train, test, datafraction, optsdict):
         if conv_first:
             x = conv(x)
             if batch_normalization:
-                x = BatchNormalization()(x)
+                x = tf.keras.layers.BatchNormalization()(x)
             if activation is not None:
-                x = Activation(activation)(x)
+                x = tf.keras.layers.Activation(activation)(x)
         else:
             if batch_normalization:
-                x = BatchNormalization()(x)
+                x = tf.keras.layers.BatchNormalization()(x)
             if activation is not None:
-                x = Activation(activation)(x)
+                x = tf.keras.layers.Activation(activation)(x)
                 x = conv(x)
         return x
 
@@ -208,7 +215,7 @@ def train(train, test, datafraction, optsdict):
     def resnet_v1(input_shape, depth, num_classes=10):
         """ResNet Version 1 Model builder [a]
 
-        Stacks of 2 x (3 x 3) Conv2D-BN-ReLU
+        Stacks of 2 x (3 x 3) tf.keras.layers.Conv2D-BN-ReLU
         Last ReLU is after the shortcut connection.
         At the beginning of each stage, the feature map size is halved (downsampled)
         by a convolutional layer with strides=2, while the number of filters is
@@ -263,15 +270,15 @@ def train(train, test, datafraction, optsdict):
                                      strides=strides,
                                      activation=None,
                                      batch_normalization=False)
-                x = keras.layers.add([x, y])
-                x = Activation('relu')(x)
+                x = tf.keras.layers.add([x, y])
+                x = tf.keras.layers.Activation('relu')(x)
             num_filters *= 2
 
         # Add classifier on top.
         # v1 does not use BN after last shortcut connection-ReLU
         x = AveragePooling2D(pool_size=8)(x)
         y = Flatten()(x)
-        outputs = Dense(num_classes,
+        outputs = tf.keras.layers.Dense(num_classes,
                         activation='softmax',
                         kernel_initializer='he_normal')(y)
 
@@ -283,9 +290,9 @@ def train(train, test, datafraction, optsdict):
     def resnet_v2(input_shape, depth, num_classes=10):
         """ResNet Version 2 Model builder [b]
 
-        Stacks of (1 x 1)-(3 x 3)-(1 x 1) BN-ReLU-Conv2D or also known as
+        Stacks of (1 x 1)-(3 x 3)-(1 x 1) BN-ReLU-tf.keras.layers.Conv2D or also known as
         bottleneck layer
-        First shortcut connection per layer is 1 x 1 Conv2D.
+        First shortcut connection per layer is 1 x 1 tf.keras.layers.Conv2D.
         Second and onwards shortcut connection is identity.
         At the beginning of each stage, the feature map size is halved (downsampled)
         by a convolutional layer with strides=2, while the number of filter maps is
@@ -312,7 +319,7 @@ def train(train, test, datafraction, optsdict):
         num_res_blocks = int((depth - 2) / 9)
 
         inputs = Input(shape=input_shape)
-        # v2 performs Conv2D with BN-ReLU on input before splitting into 2 paths
+        # v2 performs tf.keras.layers.Conv2D with BN-ReLU on input before splitting into 2 paths
         x = resnet_layer(inputs=inputs,
                          num_filters=num_filters_in,
                          conv_first=True)
@@ -357,17 +364,17 @@ def train(train, test, datafraction, optsdict):
                                      strides=strides,
                                      activation=None,
                                      batch_normalization=False)
-                x = keras.layers.add([x, y])
+                x = tf.keras.layers.add([x, y])
 
             num_filters_in = num_filters_out
 
         # Add classifier on top.
         # v2 has BN-ReLU before Pooling
-        x = BatchNormalization()(x)
-        x = Activation('relu')(x)
+        x = tf.keras.layers.BatchNormalization()(x)
+        x = tf.keras.layers.Activation('relu')(x)
         x = AveragePooling2D(pool_size=8)(x)
         y = Flatten()(x)
-        outputs = Dense(num_classes,
+        outputs = tf.keras.layers.Dense(num_classes,
                         activation='softmax',
                         kernel_initializer='he_normal')(y)
 

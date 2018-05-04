@@ -24,6 +24,7 @@ import importlib
 import logging
 import datetime
 import socket
+import versioneer
 
 try:
     from importlib import util as ilib_util
@@ -153,10 +154,9 @@ def run_model(args):
         hist_tags = "epoch,rel_epoch_start_sec,epoch_dur_sec".split(",")
         for k in sorted(hist.keys()):
             hist_tags.append(k)
-        rear_tags = "opts,n_model_params,versions,comment".split(",")
+        rear_tags = "opts,n_model_params,versions,deeprace_version,comment".split(",")
         tags = front_tags + hist_tags + rear_tags
 
-        #csvout.write("host{sep}model{sep}dataset{sep}load_dur_sec{sep}ntrain{sep}ntest{sep}datafraction{sep}train_start{sep}train_end{sep}epoch{sep}rel_epoch_start_sec{sep}epoch_dur_sec{sep}loss{sep}acc{sep}val_loss{sep}val_acc{sep}top_k_catacc{sep}val_top_k_catacc{sep}opts{sep}n_model_params{sep}versions{sep}comment\n".format(sep=args["--separator"]))
 
         header_str = args["--separator"].join(tags)
         csvout.write(header_str+"\n")
@@ -175,7 +175,11 @@ def run_model(args):
             sep=args["--separator"]
         )
         rear_constant = (args["--separator"].join([ str("{%s}" % item) for item in rear_tags ])).format(
-            opts=opts, n_model_params=details['num_weights'], versions=model.versions(), comment=args["--comment"]
+            opts=opts,
+            n_model_params=details['num_weights'],
+            versions=model.versions(),
+            deeprace_version=versioneer.get_version(),
+            comment=args["--comment"]
         )
 
         for i in range(len(timings.epoch_durations)):
@@ -187,28 +191,9 @@ def run_model(args):
 
             fields.append(rear_constant)
 
-            #([opts, details['num_weights'], model.versions(), comment=args["--comment"]))
-
-            # line = "{constant}{sep}{num}{sep}{rel_epoch_start_sec}{sep}{epoch_dur_sec}{sep}{loss}{sep}{acc}{sep}{val_loss}{sep}{val_acc}{sep}{top_k_catacc}{sep}{val_top_k_catacc}{sep}{detail}{sep}{n_model_params}{sep}{versions}{sep}{comment}\n".format(
-            #     constant=front_constant,
-            #     num=int(i),
-            #     rel_epoch_start_sec=timings.epoch_start[i],
-            #     epoch_dur_sec=timings.epoch_durations[i],
-            #     loss=hist['loss'][i],
-            #     acc=hist['acc'][i],
-            #     val_loss=hist['val_loss'][i],
-            #     val_acc= hist['val_acc'][i],
-            #     top_k_catacc=hist['top_k_categorical_accuracy'][i],
-            #     val_top_k_catacc=hist['val_top_k_categorical_accuracy'][i],
-            #     detail=opts,
-            #     sep=args["--separator"],
-            #     n_model_params=details['num_weights'],
-            #     versions=model.versions(),
-            #     comment=args["--comment"]
-            # )
-
             line = args["--separator"].join(fields)
             csvout.write(line+"\n")
+            logging.debug("+ %s",line)
 
         csvout.close()
         logging.info('wrote %s',args["--timings"])
