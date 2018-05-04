@@ -1,4 +1,5 @@
 import itertools
+import os
 
 suffix = ".tsv"
 nreps = int(10)
@@ -7,15 +8,18 @@ nepochs = int(15)
 resnet_batch_sizes = [ (1 << item) for item in range(5,10) ]
 models = "resnet32v1,resnet56v1,resnet164v2".split(",")
 
+snakefile_loc = os.path.abspath(__file__)
+dr_app = os.path.abspath(os.path.join(snakefile_loc,"../.."))
+
 expected_stems = []
 combinations = itertools.product(resnet_batch_sizes,models)
 
 for c in combinations:
     for it in range(nreps):
         expected_stems.append("{model}-{bs}-short-ngpu1_{niter:02d}{suffix}".format(model=c[1],bs=c[0],niter=it,suffix=suffix))
-    # for it in range(4):
-    #     for g in range(4):
-    #         expected_stems.append("{model}-{bs}-short-ngpu{g}of4_{niter:02d}{suffix}".format(g=g,model=c[1],bs=c[0],niter=it,suffix=suffix))
+    for it in range(4):
+        for g in range(4):
+            expected_stems.append("{model}-{bs}-short-ngpu{g}of4_{niter:02d}{suffix}".format(g=g,model=c[1],bs=c[0],niter=it,suffix=suffix))
 
 rule all:
     input:
@@ -45,32 +49,30 @@ rule short:
 
     """
 
-# rule shortof4:
-#     input:
-#         [ "{model}-{bs}-short-ngpu"+str(i)+"of4_{iteration}.log" for i in range(4) ]
-#     output:
-#         [ "{model}-{bs}-short-ngpu"+str(i)+"of4_{iteration}.tsv" for i in range(4) ]
-#     resources:
-#         ngpus=4
-#     shell: """
-#     PIDS=''
-#     export HIP_VISIBLE_DEVICES=0
-#     echo python3 ./deeprace.py train -O "batch_size={wildcards.bs}" -c "docker,mi25:1,gpu:0" -t {wildcards.model}-{wildcards.bs}-short-ngpu$gof4_{wildcards.iteration}.tsv -e {nepochs} {wildcards.model} > {wildcards.model}-{wildcards.bs}-short-ngpu0of4_{wildcards.iteration}.log 2>&1 &
-#     PIDS="$PIDS $?"
-#     export HIP_VISIBLE_DEVICES=1
-#     echo python3 ./deeprace.py train -O "batch_size={wildcards.bs}" -c "docker,mi25:1,gpu:1" -t {wildcards.model}-{wildcards.bs}-short-ngpu$gof4_{wildcards.iteration}.tsv -e {nepochs} {wildcards.model} > {wildcards.model}-{wildcards.bs}-short-ngpu1of4_{wildcards.iteration}.log 2>&1 &
-#     PIDS="$PIDS $?"
-#     export HIP_VISIBLE_DEVICES=2
-#     echo python3 ./deeprace.py train -O "batch_size={wildcards.bs}" -c "docker,mi25:1,gpu:2" -t {wildcards.model}-{wildcards.bs}-short-ngpu$gof4_{wildcards.iteration}.tsv -e {nepochs} {wildcards.model} > {wildcards.model}-{wildcards.bs}-short-ngpu2of4_{wildcards.iteration}.log 2>&1 &
-#     PIDS="$PIDS $?"
-#     export HIP_VISIBLE_DEVICES=3
-#     echo python3 ./deeprace.py train -O "batch_size={wildcards.bs}" -c "docker,mi25:1,gpu:3" -t {wildcards.model}-{wildcards.bs}-short-ngpu$gof4_{wildcards.iteration}.tsv -e {nepochs} {wildcards.model} > {wildcards.model}-{wildcards.bs}-short-ngpu3of4_{wildcards.iteration}.log 2>&1 &
-#     PIDS="$PIDS $?"
-#     wait $PIDS
-#     touch {output}
-#         """
+rule shortof4:
+    input:
+        [ "{model}-{bs}-short-ngpu"+str(i)+"of4_{iteration}.log" for i in range(4) ]
+    output:
+        [ "{model}-{bs}-short-ngpu"+str(i)+"of4_{iteration}.tsv" for i in range(4) ]
+    resources:
+        ngpus=4
+    params:
+        repochs = nepochs
+    run:
+        import subprocess
+        import multiprocessing
+        import shlex
 
-#ruleorder: short > shortof4
+        def submit(gpu_id):
+            thisenv = os.environ
+            thisenv['HIP_VISIBLE_DEVICES'] = gpu_id
+            cmd = "echo python3 {dr_app} train -O \"batch_size={bs}\" -c \"docker,mi25:1,gpu:{gpu_id}\" -t {model}-{bs}-short-ngpu{gpu_id}of4_{iteration}.tsv -e {nepochs} {model}".format(dr_app=dr_app,bs=wildcards["bs"],gpu_id=gpu_id,model=wildcards["model"],nepochs=params['repochs'])
+            return subprocess.check_output(shlex.split(cmd), shell=True, env=thisenv)
+
+        pool = multiprocessing.Pool(workers=resources["ngpus"])
+        outputs = pool.map(submit,range(resources["ngpus"]))
+
+ruleorder: short > shortof4
 
 rule info:
     run:
