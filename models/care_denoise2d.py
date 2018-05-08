@@ -40,7 +40,9 @@ class model(base_model):
         self.n = 2
         self.version =1
         self.filter_base = 32
-        self.n_row =True
+        self.n_row = 3
+        self.n_col = 3
+        self.n_conv_per_depth = 2
 
         self.batch_size =32
         self.epochs = 60
@@ -48,6 +50,7 @@ class model(base_model):
         self.scratchspace = os.getcwd()
         self.backend = "keras"
         self.n_gpus = 1
+        self.validation_split = 0.1
 
     def provides(self):
         """ provide a list of strings which denote which models can be provided by this module """
@@ -55,7 +58,6 @@ class model(base_model):
         possible_values = [2]
 
         value = [ name(n=i) for i in possible_values ]
-
 
         #TODO: automate this
         backends = []
@@ -86,6 +88,7 @@ class model(base_model):
         datafraction = float(datafraction)
         if datafraction > 1.0 or datafraction < 0:
             logging.error("resnet :: datafraction can only be [0,1]")
+            return None
 
         #TODO: this if clause is non-sense, there must be a better way
         if "keras" == self.backend.lower():

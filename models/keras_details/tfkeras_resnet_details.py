@@ -389,7 +389,7 @@ def train(train, test, datafraction, optsdict):
         generate_it = resnet_v1 #(input_shape=input_shape, depth=depth)
 
     model = None
-    if optsdict["n_gpus"] != 1 and "tensorflow" in K.backend().lower():
+    if optsdict["n_gpus"] != 1:
         import tensorflow as tf
         with tf.device('/cpu:0'):
             temp_model = generate_it(input_shape=input_shape, depth=depth)
