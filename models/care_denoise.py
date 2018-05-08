@@ -69,9 +69,9 @@ class model(base_model):
         if keras_net.can_train() != []:
             backends.extend(keras_net.can_train())
 
-        # from .keras_details import tfkeras_care_denoise2d_details as tfkeras_net
-        # if tfkeras_net.can_train() != []:
-        #     backends.extend(tfkeras_net.can_train())
+        from .keras_details import tfkeras_care_denoise2d_details as tfkeras_net
+        if tfkeras_net.can_train() != []:
+            backends.extend(tfkeras_net.can_train())
 
         return value, backends
 
@@ -102,9 +102,9 @@ class model(base_model):
             from .keras_details import care_denoise2d_details as keras_care_denoise2d
             return keras_care_denoise2d.train(train,test,datafraction,self.__dict__)
 
-        # if "tf.keras" == self.backend.lower() or "tensorflow.keras" == self.backend.lower():
-        #     from .keras_details import tfkeras_care_denoise2d_details as tfkeras_care_denoise2d
-        #     return tfkeras_care_denoise2d.train(train,test,datafraction,self.__dict__)
+        if "tf.keras" == self.backend.lower() or "tensorflow.keras" == self.backend.lower():
+            from .keras_details import tfkeras_care_denoise2d_details as tfkeras_care_denoise2d
+            return tfkeras_care_denoise2d.train(train,test,datafraction,self.__dict__)
 
     def versions(self):
 
