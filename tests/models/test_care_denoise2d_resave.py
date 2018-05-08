@@ -3,7 +3,8 @@ import os
 import glob
 import numpy as np
 from tifffile import imread
-from models.keras_details.care_denoise2d_resave import resave_to_chunks, load_from_chunks
+from models.keras_details.care_denoise2d_resave import resave_to_chunks, load_chunk
+from models.keras_details.care_denoise2d_data import create_data, create_data_from_chunks
 
 @pytest.fixture(scope="module")
 def location():
@@ -72,7 +73,7 @@ def test_compare_image_with_tifffile(location):
                                 n_imgs=10,
                                 output_stem=location["stem"])
 
-    imgs = load_from_chunks(chunkloc)
+    imgs = load_chunk(chunkloc)
 
     assert len(imgs) > 0
     first = imgs[0]
@@ -86,3 +87,18 @@ def test_compare_image_with_tifffile(location):
 
     for i in imgs:
         assert i.shape == first_tiff.shape
+
+def test_chunk_integration(location):
+
+    expected = create_data(root=location["dir"], n_imgs=10)
+
+    chunkloc = resave_to_chunks(root=location["dir"],
+                                n_imgs=10,
+                                output_stem=location["stem"])
+
+    observed = create_data_from_chunks(chunk_loc=chunkloc,n_imgs=10)
+
+    for i in range(len(expected)):
+        assert expected[i].dtype == observed[i].dtype
+        assert expected[i].shape == observed[i].shape
+        assert np.all( np.abs(expected[i] - observed[i]) < 1e5 )

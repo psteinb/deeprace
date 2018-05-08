@@ -6,7 +6,7 @@ from tifffile import imread
 
 
 def resave_to_chunks(root="data", n_imgs = None, output_stem="care_denoise2d_all"):
-    """ create pairs of (noisy,gt) pairs with gaussian noise of given value"""
+    """ store tif images found in <root> and resave them into a compressed numpy format under <root>/<output_stem>.npz """
 
     fnames = sorted(glob(os.path.join(root, "*.tif")))[:n_imgs]
     loaded = {}
@@ -27,8 +27,8 @@ def resave_to_chunks(root="data", n_imgs = None, output_stem="care_denoise2d_all
         print("unable to store %i files in %s (file not found)" % (len(fnames), produced))
         return None
 
-def load_from_chunks(fname=None, n_imgs = None):
-    """ create pairs of (noisy,gt) pairs with gaussian noise of given value"""
+def load_chunk(fname=None, n_imgs = None):
+    """ load images from <fname> which are expected to be compressed numpy arrays and return a list of arrays found """
 
     if not os.path.exists(fname):
         print("input file %s does not exist",fname)
