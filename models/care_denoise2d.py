@@ -4,60 +4,46 @@ import os
 import logging
 import math
 import time
+import glob
 
 from distutils.util import strtobool
 from .base import base_model
 
 
-def compute_depth(n=3,version=1):
-    value = 0
-    if version == 1:
-        value = n * 6 + 2
-    elif version == 2:
-        value = n * 9 + 2
-    return value
-
-
-def name(n=3,version=1):
+def name(n=2):
     """ encrypt n and version into a standardized string """
 
     # Model name, depth and version
-    value = 'resnet%dv%d' % (compute_depth(n,version), version)
+    value = 'care_denoise2d_depth%d' % (n)
 
     return value
 
 def params_from_name(name):
     """ function that extracts a dictionary of parameters from a given name,
-    e.g. resnet56v1 would result in { 'n' : 9, 'version' = 1 },
+    e.g. care_denoise2d_depth2 would result in { 'n_depth' : 2 },
     this is the inverse of the 'name' function
     """
 
     found = re.findall('\d+',name)
-    value = {'n' : None, 'version' : None}
+    value = {'n_depth' : None}
     if not len(found) == 2:
-        value['version'] = 1
+        value['n_depth'] = 2
     else:
-        value['version'] = int(found[-1])
-
-    depth = int(found[0])
-    version = value['version']
-    if version == 1:
-        value['n'] = (depth - 2)//6
-    if version == 2:
-        value['n'] = (depth - 2)//9
+        value['n_depth'] = int(found[-1])
 
     return value
 
 class model(base_model):
 
     def __init__(self):
-        self.num_classes =10
-        self.n = 5
+
+        self.n = 2
         self.version =1
+        self.filter_base = 32
+        self.n_row =True
+
         self.batch_size =32
-        self.epochs =200
-        self.data_augmentation =True
-        self.subtract_pixel_mean =True
+        self.epochs = 60
         self.checkpoint_epochs =False
         self.scratchspace = os.getcwd()
         self.backend = "keras"
@@ -66,26 +52,20 @@ class model(base_model):
     def provides(self):
         """ provide a list of strings which denote which models can be provided by this module """
 
-        possible_values = [3,5,7,9,18,27]
+        possible_values = [2]
 
-        value = [ name(n=i,version=1) for i in possible_values ]
+        value = [ name(n=i) for i in possible_values ]
 
-        possible_values.append(111)
-        value.extend( [ name(n=i,version=2) for i in possible_values ] )
 
         #TODO: automate this
         backends = []
-        from .keras_details import resnet_details as keras_resnet
-        if keras_resnet.can_train() != []:
-            backends.extend(keras_resnet.can_train())
+        from .keras_details import care_denoise2d_details as keras_net
+        if keras_net.can_train() != []:
+            backends.extend(keras_net.can_train())
 
-        from .keras_details import tfkeras_resnet_details as tfkeras_resnet
-        if tfkeras_resnet.can_train() != []:
-            backends.extend(tfkeras_resnet.can_train())
-
-        from .tf_details import resnet_details as tf_resnet
-        if tf_resnet.can_train() != []:
-            backends.extend(tf_resnet.can_train())
+        from .keras_details import tfkeras_care_denoise2d_details as tfkeras_net
+        if tfkeras_net.can_train() != []:
+            backends.extend(tfkeras_net.can_train())
 
         return value, backends
 
@@ -94,21 +74,10 @@ class model(base_model):
 
         return self.__dict__
 
-    def data_loader(self, temp_path, dataset_name = "cifar10" ):
+    def data_loader(self, temp_path, dataset = None ):
 
-        #TODO: this if clause is non-sense, there must be a better way
-        if "keras" == self.backend.lower():
-            from .keras_details.resnet_details import data_loader
-            return data_loader(temp_path, dataset_name)
-
-        elif "tf" == self.backend.lower() or "tensorflow" == self.backend.lower():
-            from .tf_details.resnet_details import data_loader
-            return data_loader(temp_path, dataset_name)
-
-        elif "tf.keras" == self.backend.lower() or "tensorflow.keras" == self.backend.lower():
-            from .keras_details.tfkeras_resnet_details import data_loader
-            return data_loader(temp_path, dataset_name)
-
+        from datasets.care_2d import load_data
+        return load_data(temp_path)
 
     def train(self,train, test, datafraction = 1.):
 
@@ -120,15 +89,12 @@ class model(base_model):
 
         #TODO: this if clause is non-sense, there must be a better way
         if "keras" == self.backend.lower():
-            from .keras_details import resnet_details as keras_resnet
-            return keras_resnet.train(train,test,datafraction,self.__dict__)
-        if "tf" == self.backend.lower() or "tensorflow" == self.backend.lower():
-            from .tf_details import resnet_details as tf_resnet
-            return tf_resnet.train(train,test,datafraction,self.__dict__)
+            from .keras_details import care_denoise2d_details as keras_care_denoise2d
+            return keras_care_denoise2d.train(train,test,datafraction,self.__dict__)
 
         if "tf.keras" == self.backend.lower() or "tensorflow.keras" == self.backend.lower():
-            from .keras_details import tfkeras_resnet_details as tfkeras_resnet
-            return tfkeras_resnet.train(train,test,datafraction,self.__dict__)
+            from .keras_details import tfkeras_care_denoise2d_details as tfkeras_care_denoise2d
+            return tfkeras_care_denoise2d.train(train,test,datafraction,self.__dict__)
 
     def versions(self):
 

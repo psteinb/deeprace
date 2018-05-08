@@ -11,6 +11,7 @@ from keras.layers import Conv2D, MaxPooling2D, UpSampling2D
 from keras.layers.merge import Concatenate, Add
 from keras.models import Model
 import keras.backend as K
+from keras.optimizers import Adam
 
 def conv_block2(n_filter, n1, n2,
                 activation="relu",
@@ -179,7 +180,7 @@ def resunet_model(input_shape,
     return Model(inputs=input, outputs=final)
 
 
-from care_denoise2d_data import create_data
+from datasets.care_denoise2d_data import create_data
 
 if __name__ == '__main__':
 

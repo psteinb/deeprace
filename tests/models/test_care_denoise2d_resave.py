@@ -3,8 +3,8 @@ import os
 import glob
 import numpy as np
 from tifffile import imread
-from models.keras_details.care_denoise2d_resave import resave_to_chunks, load_chunk
-from models.keras_details.care_denoise2d_data import create_data, create_data_from_chunks
+from datasets.care_denoise2d_resave import resave_to_chunks, load_chunk
+from datasets.care_denoise2d_data import create_data, create_data_from_chunks
 
 @pytest.fixture(scope="module")
 def location():
