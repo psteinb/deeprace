@@ -73,11 +73,12 @@ def import_model(name):
 def load_model(descriptor):
     """ given a string, return a tuple of the respective module loader and a dictionary of constant parameters """
 
-    model_id_candidates = re.findall('^[a-zA-Z]+',descriptor)
+    model_id_candidates = re.findall('^[^(\d)]+',descriptor)
+
     if not model_id_candidates:
         return None
 
-    model_id = model_id_candidates[0]
+    model_id = model_id_candidates[0].rstrip("_")
     logging.info("importing %s (from %s)", model_id, descriptor)
     loaded = import_model(model_id)
     if not loaded:

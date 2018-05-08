@@ -60,6 +60,7 @@ def train(train, test, datafraction, optsdict):
     datafraction = float(datafraction)
     if datafraction > 1.0 or datafraction < 0:
         logging.error("resnet :: datafraction can only be [0,1]")
+        return None
 
     import keras
     from keras.layers import Dense, Conv2D, BatchNormalization, Activation

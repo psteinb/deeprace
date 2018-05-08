@@ -56,10 +56,13 @@ def print_models():
         return 1
 
     logging.info("available models and backends:")
+    counter = 0;
     for k,v in models.items():
         if len(v) < 2:
             continue
-        logging.info("%s (backends: %s)" % (" ".join(v[0]), ",".join( v[-1])))
+        print("\t[%d] %s" % (counter," ".join(v[0])))
+        print("\t     backend(s): %s" % (",".join( v[-1])))
+        counter += 1
 
     return 0
 
