@@ -10,11 +10,11 @@ from distutils.util import strtobool
 from .base import base_model
 
 
-def name(n=2):
+def name(ndims=2,ndepth=2):
     """ encrypt n and version into a standardized string """
 
     # Model name, depth and version
-    value = 'care_denoise2d_depth%d' % (n)
+    value = 'care_denoise_%dDdepth%d' % (ndims,ndepth)
 
     return value
 
@@ -28,7 +28,9 @@ def params_from_name(name):
     value = {'n_depth' : None}
     if not len(found) == 2:
         value['n_depth'] = 2
+        value['n_dims'] = 2
     else:
+        value['n_dims'] = int(found[0])
         value['n_depth'] = int(found[-1])
 
     return value
@@ -37,9 +39,11 @@ class model(base_model):
 
     def __init__(self):
 
-        self.n = 2
+        self.depth = 2 #depth
+        self.n_dims = 2
+
         self.version =1
-        self.filter_base = 32
+        self.filter_base = 16
         self.n_row = 3
         self.n_col = 3
         self.n_conv_per_depth = 2
@@ -65,9 +69,9 @@ class model(base_model):
         if keras_net.can_train() != []:
             backends.extend(keras_net.can_train())
 
-        from .keras_details import tfkeras_care_denoise2d_details as tfkeras_net
-        if tfkeras_net.can_train() != []:
-            backends.extend(tfkeras_net.can_train())
+        # from .keras_details import tfkeras_care_denoise2d_details as tfkeras_net
+        # if tfkeras_net.can_train() != []:
+        #     backends.extend(tfkeras_net.can_train())
 
         return value, backends
 
@@ -79,7 +83,10 @@ class model(base_model):
     def data_loader(self, temp_path, dataset = None ):
 
         from datasets.care_2d import load_data
-        return load_data(temp_path)
+        train = load_data(temp_path)
+        logging.info("[care_denoise::data loader] training dataset x=%s y=%s ",train[0].shape,train[-1].shape )
+        ntrain = train[0].shape[0]
+        return (train, None, ntrain, 0)
 
     def train(self,train, test, datafraction = 1.):
 
@@ -95,9 +102,9 @@ class model(base_model):
             from .keras_details import care_denoise2d_details as keras_care_denoise2d
             return keras_care_denoise2d.train(train,test,datafraction,self.__dict__)
 
-        if "tf.keras" == self.backend.lower() or "tensorflow.keras" == self.backend.lower():
-            from .keras_details import tfkeras_care_denoise2d_details as tfkeras_care_denoise2d
-            return tfkeras_care_denoise2d.train(train,test,datafraction,self.__dict__)
+        # if "tf.keras" == self.backend.lower() or "tensorflow.keras" == self.backend.lower():
+        #     from .keras_details import tfkeras_care_denoise2d_details as tfkeras_care_denoise2d
+        #     return tfkeras_care_denoise2d.train(train,test,datafraction,self.__dict__)
 
     def versions(self):
 

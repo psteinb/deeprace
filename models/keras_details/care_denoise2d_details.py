@@ -5,6 +5,13 @@
 """
 
 from __future__ import print_function, unicode_literals, absolute_import, division
+import logging
+import math
+import numpy as np
+import os
+import time
+import importlib
+from ..tools.utils import versiontuple
 
 
 def can_train():
@@ -44,7 +51,7 @@ def train(train, test, datafraction, optsdict):
 
     from models.keras_details.callbacks import stopwatch
     from models.keras_details.model_utils import model_size
-    from models.keras_details.care_denoise2d import name
+    from models.care_denoise import name
 
     batch_size=int(optsdict["batch_size"])
     epochs=int(optsdict["epochs"])
@@ -53,8 +60,8 @@ def train(train, test, datafraction, optsdict):
         optsdict["epochs"] = epochs
 
     optsdict["n_gpus"] = int(optsdict["n_gpus"])
-    depth = optsdict["n"]
-    model_type = name(depth,optsdict["version"])
+    depth = int(optsdict["depth"])
+    model_type = name(optsdict["n_dims"],depth)
 
     fbase = int(optsdict["filter_base"])
     nrow = int(optsdict["n_row"])
@@ -72,16 +79,13 @@ def train(train, test, datafraction, optsdict):
     logging.info("%s (%i epochs):: batch_size = %i, depth = %i, checkpoint %i", model_type, epochs,batch_size,depth,checkpoint_epochs)
 
     nsamples_train = int(math.floor(train[0].shape[0]*datafraction))
-    nsamples_test = int(math.floor(test[0].shape[0]*datafraction))
 
-    x_train = train[0][:nsamples_train,...]
-    y_train = train[-1][:nsamples_train,...]
 
-    x_test = test[0][:nsamples_test,...]
-    y_test = test[-1][:nsamples_test,...]
+    x_train, y_train = train[0],train[-1]
+    logging.info("received training data shapes x=%s y=%s" % (x_train.shape, y_train.shape))
 
     # Input image dimensions.
-    input_shape = x_train.shape[1:]
+    #input_shape = x_train.shape[1:]
 
     def conv_block2(n_filter, n1, n2,
                     activation="relu",
@@ -255,7 +259,7 @@ def train(train, test, datafraction, optsdict):
         with tf.device('/cpu:0'):
             temp_model = resunet_model(input_shape = (None,None,1),
                           last_activation = "linear",
-                          depth=depth,
+                          n_depth=depth,
                           n_filter_base=fbase,
                           n_row=nrow,
                           n_col=ncol,
@@ -267,7 +271,7 @@ def train(train, test, datafraction, optsdict):
     else:
         model = resunet_model(input_shape = (None,None,1),
                           last_activation = "linear",
-                          depth=depth,
+                          n_depth=depth,
                           n_filter_base=fbase,
                           n_row=nrow,
                           n_col=ncol,
@@ -277,7 +281,8 @@ def train(train, test, datafraction, optsdict):
 
 
     model.compile(optimizer=Adam(lr=0.0005), loss="mse",
-                  metrics=['accuracy','top_k_categorical_accuracy'])
+                  metrics=['accuracy'# ,'top_k_categorical_accuracy'
+                  ])
 
     if logging.getLogger().level == logging.DEBUG:
         model.summary()
@@ -302,7 +307,7 @@ def train(train, test, datafraction, optsdict):
                                          save_best_only=True)
             callbacks.append(checkpoint)
 
-    history = model.fit(X,Y,
+    hist = model.fit(x_train,y_train,
                         epochs = epochs,
                         batch_size = batch_size,
                         validation_split = float(optsdict["validation_split"]),
@@ -318,31 +323,3 @@ def train(train, test, datafraction, optsdict):
 
     return hist.history, stopw, { 'num_weights' : model_size(model) }
 
-
-# from datasets.care_denoise2d_data import create_data
-
-# if __name__ == '__main__':
-
-
-#     X,Y = create_data()
-
-
-#     model = resunet_model(input_shape = (None,None,1),
-#                           last_activation = "linear",
-#                           n_depth=2,
-#                           n_filter_base=32,
-#                           n_row=3,
-#                           n_col=3,
-#                           n_conv_per_depth=2,
-#                           activation="relu",
-#                           )
-
-
-#     model.compile(optimizer=Adam(lr=0.0005), loss="mse")
-
-#     history = model.fit(X,Y,
-#                         epochs = 60,
-#                         batch_size = 16,
-#                         validation_split = 0.1,
-#                         shuffle = True
-#                         )

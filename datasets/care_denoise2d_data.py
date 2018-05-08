@@ -7,10 +7,10 @@ from __future__ import print_function, unicode_literals, absolute_import, divisi
 import os
 import numpy as np
 from glob import glob
-from tifffile import imread
+
 # from keras.optimizers import Adam
 # from care_model import resunet_model
-from models.keras_details.care_denoise2d_resave import load_chunk
+from datasets.care_denoise2d_resave import load_chunk
 
 def normalize(x, pmin=3, pmax=99.8, axis = None, clip=False):
     mi = np.percentile(x, pmin, axis = axis, keepdims=True).astype(np.float32)
@@ -41,6 +41,7 @@ def shuffle_inplace(*arrs):
 def create_data(sigma = 400, root="data", n_imgs = None, shape = (256,256)):
     """ create pairs of (noisy,gt) pairs with gaussian noise of given value"""
 
+    from tifffile import imread
     fnames = sorted(glob(os.path.join(root, "*.tif")))[:n_imgs]
 
     print("loading %s files" % len(fnames))
