@@ -15,12 +15,17 @@ class base_model(metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
+    def available_datasets():
+        """ provide a list of strings which denote which datasets can be loaded and used by this module """
+        pass
+
+    @abc.abstractmethod
     def options():
         """ return a dictionary of options that can be provided to the train method besides the train and test dataset """
         pass
 
     @abc.abstractmethod
-    def data_loader(temp_path="."):
+    def data_loader(temp_path=".", dataset_name=None):
         """ load input data into memory, return a tuple train <np.narray>, test <np.narray>, ntrain, ntest """
         pass
 

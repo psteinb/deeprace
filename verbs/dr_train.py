@@ -8,7 +8,7 @@ options:
     -R <rpath> --resultspath=<rpath>           path to store results or checkpoints [default: deeprace-results]
     -b <backe> --backend=<backe>               which backend to use [default: keras]
     -e <neps> --nepochs=<neps>                 number of epochs to train [default: 0]
-    -d <ds> --dataset=<ds>                     the dataset to use [default: cifar10]
+    -d <ds> --dataset=<ds>                     the dataset to use (depends on the model of choice) [default: model_default]
     -f <dfrac> --datafraction=<dfrac>          fraction of the dataset to use, helpful for debugging/testing [default: 1.]
     -t <output> --timings=<output>             file to store the individual timings in [default: timings.tsv]
     -s <sep> --separator=<sep>                 seperator for the output data [default: \t]
@@ -108,11 +108,10 @@ def run_model(args):
     (loaded,opts_from_name) = load_model(modelname)
 
     model = loaded.model()
-    model.backend=args["--backend"]
-    deciphered = model.options()
-
     logging.info("successfully imported %s",modelname)
 
+    model.backend=args["--backend"]
+    deciphered = model.options()
     deciphered.update(opts_from_name)
     meta_opts = {}
 
@@ -123,12 +122,20 @@ def run_model(args):
 
     if ("--nepochs") in args.keys() and int(args["--nepochs"]) > 0:
         deciphered["epochs"] = int(args["--nepochs"])
-    
+
     opts = ",".join(["{k}={v}".format(k=item[0],v=item[1]) for item in deciphered.items() ])
     deciphered['datapath'] = args["--datapath"]
-    start = datetime.datetime.now()
-    train, test, ntrain, ntest = model.data_loader(args["--datapath"])
-    end = datetime.datetime.now()
+    if 'model_default' not in args["--dataset"].lower():
+        model.dataset = args["--dataset"].lower()
+
+    try:
+        start = datetime.datetime.now()
+        train, test, ntrain, ntest = model.data_loader(args["--datapath"],dataset_name=model.dataset)
+        end = datetime.datetime.now()
+    except:
+        logging.error("unable to load indicated dataset %s from/into %s (%s operates with %s)",args["--dataset"],args["--datapath"], modelname, model.available_datasets())
+        sys.exit(1)
+
     logging.info("loading the data took %f seconds", ((end-start).total_seconds()))
     logging.info("running %s", modelname)
 
@@ -166,7 +173,7 @@ def run_model(args):
         front_constant = ("{sep}".join([ str("{%s}" % item) for item in front_tags ])).format(
             host=hname,
             model=modelname,
-            dataset=args["--dataset"],
+            dataset=model.dataset,
             load_dur_sec=(end-start).total_seconds(),
             ntrain=ntrain,
             ntest=ntest,

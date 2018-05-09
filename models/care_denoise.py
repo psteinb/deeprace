@@ -55,16 +55,39 @@ class model(base_model):
         self.backend = "keras"
         self.n_gpus = 1
         self.validation_split = 0.1
+        self.dataset = self.available_datasets()[0]
+
+
+    def available_datasets(self):
+        datasets = []
+
+        from .keras_details import care_denoise2d_details as keras_net
+        if keras_net.can_train() != []:
+            if not 'care_2d' in datasets:
+                datasets.append('care_2d')
+
+        from .keras_details import tfkeras_care_denoise2d_details as tfkeras_net
+        if tfkeras_net.can_train() != []:
+            if not 'care_2d' in datasets:
+                datasets.append('care_2d')
+
+        return datasets
 
     def provides(self):
-        """ provide a list of strings which denote which models can be provided by this module """
+        """ provide a tuple,
+        item[0] yields a list which models can be provided by this module
+        item[1] yields a list which backends can be used
+        item[2] yields a list which datasets can used
+        """
 
-        possible_values = [2]
+        possible_values = { "2D" : [2] }
 
-        value = [ name(n=i) for i in possible_values ]
+        value = [ name(ndims=2,ndepth=i) for i in possible_values["2D"] ]
 
         #TODO: automate this
         backends = []
+        datasets = self.available_datasets()
+
         from .keras_details import care_denoise2d_details as keras_net
         if keras_net.can_train() != []:
             backends.extend(keras_net.can_train())
@@ -73,19 +96,24 @@ class model(base_model):
         if tfkeras_net.can_train() != []:
             backends.extend(tfkeras_net.can_train())
 
-        return value, backends
+        return value, backends, datasets
 
     def options(self):
         """ return a dictionary of options that can be provided to the train method besides the train and test dataset """
 
         return self.__dict__
 
-    def data_loader(self, temp_path, dataset = None ):
+    def data_loader(self, temp_path, dataset_name = 'care_2d' ):
+
+        if 'care_2d' not in dataset_name:
+            logging.error("care_denoise is unable to load unknown dataset %s (must be %s)",dataset_name,",".join(self.available_datasets()))
+            return None
 
         from datasets.care_2d import load_data
         train = load_data(temp_path)
-        logging.info("[care_denoise::data loader] training dataset x=%s y=%s ",train[0].shape,train[-1].shape )
         ntrain = train[0].shape[0]
+        logging.debug("[care_denoise::data loader] training dataset x=%s y=%s ",train[0].shape,train[-1].shape )
+
         return (train, None, ntrain, 0)
 
     def train(self,train, test, datafraction = 1.):

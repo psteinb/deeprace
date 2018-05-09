@@ -62,10 +62,31 @@ class model(base_model):
         self.scratchspace = os.getcwd()
         self.backend = "keras"
         self.n_gpus = 1
+        self.dataset = self.available_datasets()[0]
+
+    def available_datasets(self):
+        datasets = []
+
+        from .keras_details import care_denoise2d_details as keras_net
+        if keras_net.can_train() != []:
+            if not 'cifar10' in datasets:
+                datasets.append('cifar10')
+
+        from .keras_details import tfkeras_care_denoise2d_details as tfkeras_net
+        if tfkeras_net.can_train() != []:
+            if not 'cifar10' in datasets:
+                datasets.append('cifar10')
+
+        return datasets
 
     def provides(self):
-        """ provide a list of strings which denote which models can be provided by this module """
+        """ provide a tuple,
+        item[0] yields a list which models can be provided by this module
+        item[1] yields a list which backends can be used
+        item[2] yields a list which datasets can used
+        """
 
+        # models
         possible_values = [3,5,7,9,18,27]
 
         value = [ name(n=i,version=1) for i in possible_values ]
@@ -75,6 +96,8 @@ class model(base_model):
 
         #TODO: automate this
         backends = []
+        datasets = self.available_datasets()
+
         from .keras_details import resnet_details as keras_resnet
         if keras_resnet.can_train() != []:
             backends.extend(keras_resnet.can_train())
@@ -87,7 +110,9 @@ class model(base_model):
         if tf_resnet.can_train() != []:
             backends.extend(tf_resnet.can_train())
 
-        return value, backends
+        ### datasets
+
+        return value, backends, datasets
 
     def options(self):
         """ return a dictionary of options that can be provided to the train method besides the train and test dataset """
@@ -95,6 +120,10 @@ class model(base_model):
         return self.__dict__
 
     def data_loader(self, temp_path, dataset_name = "cifar10" ):
+
+        if 'cifar10' not in dataset_name:
+            logging.error("resnet is unable to load unknown dataset %s (must be %s)",dataset_name,",".join(self.available_datasets()))
+            return None
 
         #TODO: this if clause is non-sense, there must be a better way
         if "keras" == self.backend.lower():

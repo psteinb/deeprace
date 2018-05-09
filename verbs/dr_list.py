@@ -61,7 +61,9 @@ def print_models():
         if len(v) < 2:
             continue
         print("\t[%d] %s" % (counter," ".join(v[0])))
-        print("\t     backend(s): %s" % (",".join( v[-1])))
+        print("\t     backend(s): %s" % (",".join( v[1])))
+        print("\t     datasets(s): %s" % (",".join( v[-1])))
+
         counter += 1
 
     return 0

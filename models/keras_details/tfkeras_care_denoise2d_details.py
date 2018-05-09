@@ -89,14 +89,17 @@ def train(train, test, datafraction, optsdict):
     logging.info("received options: %s", optsdict)
     logging.info("%s (%i epochs):: batch_size = %i, depth = %i, checkpoint %i", model_type, epochs,batch_size,depth,checkpoint_epochs)
 
+
     nsamples_train = int(math.floor(train[0].shape[0]*datafraction))
 
-
     x_train, y_train = train[0],train[-1]
-    logging.info("received training data shapes x=%s y=%s" % (x_train.shape, y_train.shape))
 
-    # Input image dimensions.
-    #input_shape = x_train.shape[1:]
+    if datafraction != 1.0:
+        x_train = train[0][:nsamples_train,]
+        y_train = train[-1][:nsamples_train,]
+
+    logging.info("using x=%s y=%s for training (original: x=%s y=%s) " % (x_train.shape, y_train.shape,train[0].shape, train[1].shape))
+
 
     def conv_block2(n_filter, n1, n2,
                     activation="relu",
@@ -319,12 +322,12 @@ def train(train, test, datafraction, optsdict):
             callbacks.append(checkpoint)
 
     hist = model.fit(x_train,y_train,
-                        epochs = epochs,
-                        batch_size = batch_size,
-                        validation_split = float(optsdict["validation_split"]),
-                        shuffle = True,
-                        callbacks=callbacks
-                        )
+                     epochs = epochs,
+                     batch_size = batch_size,
+                     validation_split = float(optsdict["validation_split"]),
+                     shuffle = True,
+                     callbacks=callbacks
+    )
 
     weights_fname = "{date}_{finishtime}_deeprace_{modeldescr}_finalweights.h5".format(date=time.strftime("%Y%m%d"),
                                                                                        finishtime=time.strftime("%H%M%S"),
