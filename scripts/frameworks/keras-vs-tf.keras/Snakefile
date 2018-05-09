@@ -44,25 +44,45 @@ rule prepare:
         [ item.replace(suffix,".log") for item in expected_stems ]
     shell: "touch {output}"
 
-rule gpu1:
+rule keras:
     input:
-        "{model}-{bs}-{be}-short-ngpu1_{iteration}.log"
+        "{model}-{bs}-keras-short-ngpu1_{iteration}.log"
 
     output:
-        "{model}-{bs}-{be}-short-ngpu1_{iteration}"+suffix
+        "{model}-{bs}-keras-short-ngpu1_{iteration}"+suffix
 
     params:
-        repochs = nepochs, app = dr_app
+        be = 'keras', repochs = nepochs, app = dr_app
 
     # resources:
     #     ngpus=1
     threads: 1
 
     run:
-        os.environ['CUDA_VISIBLE_DEVICES'] = str(int(wildcards["iteration"]) % 2)
+        os.environ['CUDA_VISIBLE_DEVICES'] = "0"
         shell("env >> {input}")
-        shell("echo python3 {params.app} train -O 'batch_size={wildcards.bs}' -b {wildcards.be} -c 'singularity,titanx:1' -t {output} -e {params.repochs} {wildcards.model} >> {input} 2>&1")
-        shell("python3 {params.app} train -O 'batch_size={wildcards.bs}' -b {wildcards.be} -c 'singularity,titanx:1' -t {output} -e {params.repochs} {wildcards.model} >> {input} 2>&1")
+        shell("echo python3 {params.app} train -O 'batch_size={wildcards.bs}' -b {params.be} -c 'singularity,titanx:1' -t {output} -e {params.repochs} {wildcards.model} >> {input} 2>&1")
+        shell("python3 {params.app} train -O 'batch_size={wildcards.bs}' -b {params.be} -c 'singularity,titanx:1' -t {output} -e {params.repochs} {wildcards.model} >> {input} 2>&1")
+
+rule tfkeras:
+    input:
+        "{model}-{bs}-tf.keras-short-ngpu1_{iteration}.log"
+
+    output:
+        "{model}-{bs}-tf.keras-short-ngpu1_{iteration}"+suffix
+
+    params:
+        be = 'tf.keras', repochs = nepochs, app = dr_app
+
+        # resources:
+        #     ngpus=1
+    threads: 1
+
+    run:
+        os.environ['CUDA_VISIBLE_DEVICES'] = "1"
+        shell("env >> {input}")
+        shell("echo python3 {params.app} train -O 'batch_size={wildcards.bs}' -b {params.be} -c 'singularity,titanx:1' -t {output} -e {params.repochs} {wildcards.model} >> {input} 2>&1")
+        shell("python3 {params.app} train -O 'batch_size={wildcards.bs}' -b {params.be} -c 'singularity,titanx:1' -t {output} -e {params.repochs} {wildcards.model} >> {input} 2>&1")
 
 
 rule gpu2:
