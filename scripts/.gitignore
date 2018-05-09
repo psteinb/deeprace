@@ -1,3 +1,6 @@
 *.tar*
 *tgz
 .snakemake
+datasets
+deeprace-results
+
