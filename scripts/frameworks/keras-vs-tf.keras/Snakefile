@@ -110,7 +110,7 @@ rule gpu2:
 
 
 
-# ruleorder: short > shortof4
+#ruleorder: keras > tfkeras
 
 rule info:
     run:
