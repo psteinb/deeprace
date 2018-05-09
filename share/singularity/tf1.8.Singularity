@@ -1,5 +1,5 @@
 BootStrap: docker
-From: tensorflow/tensorflow:1.6.0-gpu-py3
+From: tensorflow/tensorflow:1.8.0-gpu-py3
 
 %post
     apt-get -y update
