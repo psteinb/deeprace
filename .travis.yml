@@ -24,14 +24,14 @@ matrix:
           env: TOXENV=py36
 
         - os: osx
-          #language: generic
-          python: 3.4
+          language: generic
           env: TOXENV=py34
 
 install:
-  - pip3 install -r dev-requirements.txt
-  - pip3 install -r dev-requirements.txt # just to check that everything is there
+  - ./.travis/install.sh
+  - python -m pip install -r dev-requirements.txt
+  - python -m pip install -r dev-requirements.txt # just to check that everything is there
 # command to run tests
 script:
-  - pytest-3 --ignore models
-  - python3 ./deeprace.py help
+  - pytest --ignore models
+  - python ./deeprace.py help
