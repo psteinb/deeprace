@@ -9,6 +9,7 @@ python:
 # command to install dependencies
 install:
   - pip install -r dev-requirements.txt
+  - pip install -r dev-requirements.txt # just to check that everything is there
 # command to run tests
 script:
   - pytest --ignore models

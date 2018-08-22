@@ -6,4 +6,4 @@ numpy
 tifffile==0.15.1
 keras==2.2.2
 tensorflow==1.10.0
-
+#versioneer
