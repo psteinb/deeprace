@@ -19,4 +19,8 @@ if [[ $TRAVIS_OS_NAME == 'osx' ]]; then
     # esac
 else
     # Install some custom requirements on Linux
+    which python
+    python --version
+    which python3
+    python3 --version
 fi
