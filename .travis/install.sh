@@ -4,10 +4,14 @@ if [[ $TRAVIS_OS_NAME == 'osx' ]]; then
 
     # Install some custom requirements on OS X
     # e.g. brew install pyenv-virtualenv
+    alias python=python3
+    alias pip=pip3
+    alias pytest=pytest-3
     which python
     python --version
-    which python3
-    python3 --version
+    which pip
+    pip --version
+    which pytest
 
     # case "${TOXENV}" in
     #     py32)
