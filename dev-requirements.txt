@@ -5,3 +5,4 @@ docopt==0.6.2
 tifffile==0.15.1
 keras
 tensorflow
+numpy
