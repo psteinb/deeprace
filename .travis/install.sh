@@ -7,6 +7,7 @@ if [[ $TRAVIS_OS_NAME == 'osx' ]]; then
     alias python=python3
     alias pip=pip3
     alias pytest=pytest-3
+
     which python
     python --version
     which pip
