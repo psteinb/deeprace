@@ -11,7 +11,7 @@ from datasets.care_denoise2d_data import create_data, create_data_from_chunks
 
 @pytest.fixture(scope="module")
 def location():
-    folder = '/projects/steinbac/care-denoise2d'
+    folder = os.path.split(os.path.abspath(__file__))[0]
     stem = 'pytest-care-denoise2d'
 
     def fin():
