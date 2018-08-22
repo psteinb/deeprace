@@ -62,7 +62,10 @@ class model(base_model):
         self.scratchspace = os.getcwd()
         self.backend = "keras"
         self.n_gpus = 1
-        self.dataset = self.available_datasets()[0]
+        if self.available_datasets() and len(self.available_datasets())>0:
+            self.dataset = self.available_datasets()[0]
+        else:
+            self.dataset = None
 
     def available_datasets(self):
         datasets = []
