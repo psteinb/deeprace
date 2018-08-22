@@ -4,8 +4,8 @@ python:
   - "3.4"
   - "3.5"
   - "3.6"
-  - "3.7"
-  - "3.7-dev"  # 3.7 development branch
+  #- "3.7" #image not available
+  #- "3.7-dev"  # tf not available through pip
 # command to install dependencies
 install:
   - pip install -r dev-requirements.txt
