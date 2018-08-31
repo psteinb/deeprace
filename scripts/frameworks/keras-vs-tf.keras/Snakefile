@@ -44,45 +44,34 @@ rule prepare:
         [ item.replace(suffix,".log") for item in expected_stems ]
     shell: "touch {output}"
 
-rule keras:
+rule gpu1:
     input:
-        "{model}-{bs}-keras-short-ngpu1_{iteration}.log"
+        ["{model}-{bs}-keras-short-ngpu1_{iteration}.log","{model}-{bs}-tf.keras-short-ngpu1_{iteration}.log"]
 
     output:
-        "{model}-{bs}-keras-short-ngpu1_{iteration}"+suffix
+        ["{model}-{bs}-keras-short-ngpu1_{iteration}"+suffix, "{model}-{bs}-tf.keras-short-ngpu1_{iteration}"+suffix]
 
     params:
-        be = 'keras', repochs = nepochs, app = dr_app
+         repochs = nepochs, app = dr_app
 
     # resources:
     #     ngpus=1
-    threads: 1
+    threads: 2
 
     run:
-        os.environ['CUDA_VISIBLE_DEVICES'] = "0"
-        shell("env >> {input}")
-        shell("echo python3 {params.app} train -O 'batch_size={wildcards.bs}' -b {params.be} -c 'singularity,titanx:1' -t {output} -e {params.repochs} {wildcards.model} >> {input} 2>&1")
-        shell("python3 {params.app} train -O 'batch_size={wildcards.bs}' -b {params.be} -c 'singularity,titanx:1' -t {output} -e {params.repochs} {wildcards.model} >> {input} 2>&1")
 
-rule tfkeras:
-    input:
-        "{model}-{bs}-tf.keras-short-ngpu1_{iteration}.log"
-
-    output:
-        "{model}-{bs}-tf.keras-short-ngpu1_{iteration}"+suffix
-
-    params:
-        be = 'tf.keras', repochs = nepochs, app = dr_app
-
-        # resources:
-        #     ngpus=1
-    threads: 1
-
-    run:
         os.environ['CUDA_VISIBLE_DEVICES'] = "1"
-        shell("env >> {input}")
-        shell("echo python3 {params.app} train -O 'batch_size={wildcards.bs}' -b {params.be} -c 'singularity,titanx:1' -t {output} -e {params.repochs} {wildcards.model} >> {input} 2>&1")
-        shell("python3 {params.app} train -O 'batch_size={wildcards.bs}' -b {params.be} -c 'singularity,titanx:1' -t {output} -e {params.repochs} {wildcards.model} >> {input} 2>&1")
+        shell("env >> {input[1]}")
+        shell("echo numactl -m1 -N1 python3 {params.app} train -O 'batch_size={wildcards.bs}' -b tf.keras -c 'titanx:1,singularity,pinned' -t {output[1]} -e {params.repochs} {wildcards.model} >> {input[1]} 2>&1")
+        shell("numactl -m1 -N1 python3 {params.app} train -O 'batch_size={wildcards.bs}' -b tf.keras -c 'titanx:1,singularity,pinned' -t {output[1]} -e {params.repochs} {wildcards.model} >> {input[1]} 2>&1 &")
+
+        os.environ['CUDA_VISIBLE_DEVICES'] = "0"
+        shell("env >> {input[0]}")
+        shell("echo numactl -m0 -N0 python3 {params.app} train -O 'batch_size={wildcards.bs}' -b keras -c 'titanx:1,singularity,pinned' -t {output[0]} -e {params.repochs} {wildcards.model} >> {input[0]} 2>&1")
+        shell("numactl -m0 -N0 python3 {params.app} train -O 'batch_size={wildcards.bs}' -b keras -c 'titanx:1,singularity,pinned' -t {output[0]} -e {params.repochs} {wildcards.model} >> {input[0]} 2>&1 ")
+
+
+
 
 
 rule gpu2:
@@ -104,8 +93,8 @@ rule gpu2:
 
         os.environ['CUDA_VISIBLE_DEVICES'] = "0,1"
         shell("env >> {input}")
-        shell("echo python3 {params.app} train -O 'batch_size={wildcards.bs},n_gpus=2' -b {wildcards.be} -c 'singularity,titanx:1' -t {output} -e {params.repochs} {wildcards.model} >> {input}")
-        shell("python3 {params.app} train -O 'batch_size={wildcards.bs},n_gpus=2' -b {wildcards.be} -c 'singularity,titanx:1' -t {output} -e {params.repochs} {wildcards.model} >> {input} 2>&1")
+        shell("echo python3 {params.app} train -O 'batch_size={wildcards.bs},n_gpus=2' -b {wildcards.be} -c 'titanx:2,singularity' -t {output} -e {params.repochs} {wildcards.model} >> {input}")
+        shell("python3 {params.app} train -O 'batch_size={wildcards.bs},n_gpus=2' -b {wildcards.be} -c 'titanx:2,singularity' -t {output} -e {params.repochs} {wildcards.model} >> {input} 2>&1")
 
 
 
