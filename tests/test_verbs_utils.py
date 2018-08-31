@@ -2,6 +2,7 @@
 from __future__ import unicode_literals
 from subprocess import check_output
 from verbs.utils import uuid_from_this, yaml_this
+import yaml
 
 def test_create_uuid_diff_input():
 

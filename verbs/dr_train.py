@@ -27,6 +27,7 @@ import datetime
 import socket
 import versioneer
 import yaml
+from verbs.utils import uuid_from_this, yaml_this
 
 try:
     from importlib import util as ilib_util
@@ -157,29 +158,33 @@ def run_model(args):
 
     hname = socket.getfqdn().split(".")[0]
     hist, timings, details = model.train(train,test,datafraction=args["--datafraction"])
+    uuid= str(uuid_from_this(modelname, model.dataset, opts,float(args["--datafraction"])))
 
     yaml_file = os.path.splitext(args["--timings"])[0]+".yaml"
     with open(yaml_file,'w') as yamlf:
 
-        to_write = {
-            "host"             : hname,
-            "model"            : modelname,
-            "dataset"          : model.dataset,
-            "load_dur_sec"     : (end-start).total_seconds(),
-            "ntrain"           : ntrain,
-            "ntest"            : ntest,
-            "datafraction"     : args["--datafraction"],
-            "train_start"      : timings.train_begin.strftime("%Y%m%d:%H%M%S"),
-            "train_end"        : timings.train_end.strftime("%Y%m%d:%H%M%S"),
-            "opts"             : opts,
-            "n_model_params"   : details['num_weights'],
-            "versions"         : model.versions(),
-            "deeprace_version" : versioneer.get_version(),
-            "uuid"             : "",
-            "comment"          : args["--comment"]
-        }
+        to_write = yaml_this(
+            host             = hname,
+            model            = modelname,
+            backend          = args["--backend"],
+            dataset          = model.dataset,
+            load_dur_sec     = (end-start).total_seconds(),
+            ntrain           = ntrain,
+            ntest            = ntest,
+            datafraction     = float(args["--datafraction"]),
+            train_start      = timings.train_begin.strftime("%Y%m%d:%H%M%S"),
+            train_end        = timings.train_end.strftime("%Y%m%d:%H%M%S"),
+            opts             = opts,
+            n_model_params   = int(details['num_weights']),
+            versions         = model.versions(),
+            deeprace_version = versioneer.get_version(),
+            uuid             = uuid,
+            comment          = args["--comment"]
+        )
 
-        yaml.dump(to_write, yamlf)
+        #yaml.dump(to_write, yamlf, default_flow_style=False)
+        yamlf.write(to_write)
+        logging.info("wrote %s",yaml_file)
 
     with open(args["--timings"],'w') as csvout:
 
@@ -189,12 +194,11 @@ def run_model(args):
 
         header_str = args["--separator"].join(tags)
         csvout.write(header_str+"\n")
-        logging.info("wrote %s",header_str)
 
 
         for i in range(len(timings.epoch_durations)):
 
-            fields = [str(i), str(timings.epoch_start[i]), str(timings.epoch_durations[i])]
+            fields = [uuid,str(i), str(timings.epoch_start[i]), str(timings.epoch_durations[i])]
 
             for k in sorted(hist.keys()):
                 fields.append(str(hist[k][i]))
