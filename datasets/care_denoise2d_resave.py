@@ -12,7 +12,7 @@ def resave_to_chunks(root="data", n_imgs = None, output_stem="care_denoise2d_all
     fnames = sorted(glob(os.path.join(root, "*.tif")))[:n_imgs]
     loaded = {}
 
-    logging.info("loading %s files" % len(fnames))
+    logging.info("loading %s .tif files" % len(fnames))
     for f in fnames:
         stem = os.path.split(f)[-1]
         loaded[stem] = (imread(f))

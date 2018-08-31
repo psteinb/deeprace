@@ -43,7 +43,7 @@ def can_train():
         if versiontuple(tfkeras_clean_version,3) >= versiontuple(min_version,3):
             available_backends.append("tensorflow.keras")
         else:
-            logging.debug("your keras version %s is not supported (%s - %s)",str(kv),minv,maxv)
+            logging.debug("your keras version %s is not supported (%s - %s)",str(kv),min_version,max_version)
 
     return available_backends
 

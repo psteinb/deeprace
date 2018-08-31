@@ -1,21 +1,27 @@
 import pytest
 import os
 import glob
+import sys
 import numpy as np
+
 from tifffile import imread
 from datasets.care_denoise2d_resave import resave_to_chunks, load_chunk
 from datasets.care_denoise2d_data import create_data, create_data_from_chunks
 
-@pytest.fixture(scope="module")
+@pytest.fixture #(scope="module")
 def location():
-    folder = '/projects/steinbac/care-denoise2d'
+
+    parent = os.path.join(os.path.split(os.path.abspath(__file__))[0],"..")
+    folder = os.path.join(parent,"testdata")
     stem = 'pytest-care-denoise2d'
 
     def fin():
         found = glob.glob(os.path.join(folder,stem+".np*"))
         if len(found) > 0:
             for i in found:
+                print("removing {0}".format(i))
                 os.remove(i)
+
     return {"dir" : folder, "stem" : stem}
 
 

@@ -25,8 +25,8 @@ def test_resnet_provides_something():
     obs = rnet.provides()
 
     assert len(obs) != 0
-    assert "resnet32v1" in obs
-    assert "resnet56v1" in obs
+    assert "resnet32v1" in obs[0]
+    assert "resnet56v1" in obs[0]
 
 
 def test_resnet_has_options():
@@ -36,7 +36,8 @@ def test_resnet_has_options():
 
     assert type(obs) != None
     assert type(obs) == type({})
-    assert obs["n"] == 3
+
+    assert obs["n"] == 5
     assert obs["num_classes"] == 10
     assert not "provides" in obs.keys()
     assert not "options" in obs.keys()
