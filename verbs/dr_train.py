@@ -125,15 +125,16 @@ def run_model(args):
 
     opts = ",".join(["{k}={v}".format(k=item[0],v=item[1]) for item in deciphered.items() ])
     deciphered['datapath'] = args["--datapath"]
-    if 'model_default' not in args["--dataset"].lower():
+    if 'model_default' != args["--dataset"].lower():
         model.dataset = args["--dataset"].lower()
 
     try:
         start = datetime.datetime.now()
         train, test, ntrain, ntest = model.data_loader(args["--datapath"],dataset_name=model.dataset)
         end = datetime.datetime.now()
-    except:
-        logging.error("unable to load indicated dataset %s from/into %s (%s operates with %s)",args["--dataset"],args["--datapath"], modelname, model.available_datasets())
+    except Exception as ex:
+        logging.error("unable to load indicated dataset %s from/into %s (%s operates with %s)",model.dataset,args["--datapath"], modelname, model.available_datasets())
+        logging.error(ex)
         sys.exit(1)
 
     logging.info("loading the data took %f seconds", ((end-start).total_seconds()))

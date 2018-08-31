@@ -23,7 +23,7 @@ def load_data(temp_dir='datasets'):
     fname = 'care_denoise2d_all.npz'
 
     if not os.path.exists(temp_dir):
-        os.mkdirs(temp_dir)
+        os.mkdir(temp_dir)
 
     stored_loc = os.path.join(temp_dir,fname)
     X,Y = None,None

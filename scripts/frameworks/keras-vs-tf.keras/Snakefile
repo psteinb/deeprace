@@ -1,0 +1,111 @@
+import itertools
+import os
+import sys
+
+suffix = ".tsv"
+nreps = int(10)
+nepochs = int(10)
+
+backends = ["keras","tf.keras"]
+batch_sizes = [ 16,32,128 ] #
+models = "resnet56v1,care_denoise2d".split(",")
+
+JOBDIR=os.path.abspath(os.path.curdir)
+if JOBDIR[-1] != "/": # this checks if jobdir ends with slash if not it adds a slash
+   JOBDIR+="/"
+
+dr_dir = os.path.abspath(os.path.join(JOBDIR,"../../.."))
+if os.path.exists(os.path.join(dr_dir,"deeprace.py")):
+    dr_app = os.path.join(dr_dir,"deeprace.py")
+else:
+    dr_app = os.path.join(os.environ["HOME"],"development","deeprace","deeprace.py")
+    if not os.path.exists(dr_app):
+        print("UNABLE TO FIND deeprace.py")
+        sys.exit(1)
+
+expected_stems = []
+combinations = itertools.product(batch_sizes,models,backends)
+
+for c in combinations:
+   if c[1] == "care_denoise2d" and int(c[0]) > 32:
+      continue
+
+   for it in range(nreps):
+      expected_stems.append("{model}-{bs}-{be}-short-ngpu1_{niter:02d}{suffix}".format(model=c[1],bs=c[0],be=c[-1],niter=it,suffix=suffix))
+   for it in range(nreps):
+      expected_stems.append("{model}-{bs}-{be}-short-ngpu2_{niter:02d}{suffix}".format(model=c[1],bs=c[0],be=c[-1],niter=it,suffix=suffix))
+
+rule all:
+    input:
+        expected_stems
+
+rule prepare:
+    output:
+        [ item.replace(suffix,".log") for item in expected_stems ]
+    shell: "touch {output}"
+
+rule gpu1:
+    input:
+        ["{model}-{bs}-keras-short-ngpu1_{iteration}.log","{model}-{bs}-tf.keras-short-ngpu1_{iteration}.log"]
+
+    output:
+        ["{model}-{bs}-keras-short-ngpu1_{iteration}"+suffix, "{model}-{bs}-tf.keras-short-ngpu1_{iteration}"+suffix]
+
+    params:
+         repochs = nepochs, app = dr_app
+
+    # resources:
+    #     ngpus=1
+    threads: 2
+
+    run:
+
+        os.environ['CUDA_VISIBLE_DEVICES'] = "1"
+        shell("env >> {input[1]}")
+        shell("echo numactl -m1 -N1 python3 {params.app} train -O 'batch_size={wildcards.bs}' -b tf.keras -c 'titanx:1,singularity,pinned' -t {output[1]} -e {params.repochs} {wildcards.model} >> {input[1]} 2>&1")
+        shell("numactl -m1 -N1 python3 {params.app} train -O 'batch_size={wildcards.bs}' -b tf.keras -c 'titanx:1,singularity,pinned' -t {output[1]} -e {params.repochs} {wildcards.model} >> {input[1]} 2>&1 &")
+
+        os.environ['CUDA_VISIBLE_DEVICES'] = "0"
+        shell("env >> {input[0]}")
+        shell("echo numactl -m0 -N0 python3 {params.app} train -O 'batch_size={wildcards.bs}' -b keras -c 'titanx:1,singularity,pinned' -t {output[0]} -e {params.repochs} {wildcards.model} >> {input[0]} 2>&1")
+        shell("numactl -m0 -N0 python3 {params.app} train -O 'batch_size={wildcards.bs}' -b keras -c 'titanx:1,singularity,pinned' -t {output[0]} -e {params.repochs} {wildcards.model} >> {input[0]} 2>&1 ")
+
+
+
+
+
+rule gpu2:
+     input:
+         "{model}-{bs}-{be}-short-ngpu2_{iteration}.log"
+
+     output:
+         "{model}-{bs}-{be}-short-ngpu2_{iteration}"+suffix
+
+     params:
+         repochs = nepochs, app = dr_app
+
+     # resources:
+     #     ngpus=2
+     threads: 2
+
+     run:
+        #import subprocess
+
+        os.environ['CUDA_VISIBLE_DEVICES'] = "0,1"
+        shell("env >> {input}")
+        shell("echo python3 {params.app} train -O 'batch_size={wildcards.bs},n_gpus=2' -b {wildcards.be} -c 'titanx:2,singularity' -t {output} -e {params.repochs} {wildcards.model} >> {input}")
+        shell("python3 {params.app} train -O 'batch_size={wildcards.bs},n_gpus=2' -b {wildcards.be} -c 'titanx:2,singularity' -t {output} -e {params.repochs} {wildcards.model} >> {input} 2>&1")
+
+
+
+
+#ruleorder: keras > tfkeras
+
+rule info:
+    run:
+        print("location: ",dr_app)
+        print("expected inputs:\n",rules.prepare.output[:10],"...", rules.prepare.output[-10:])
+        print("expected outputs:\n",expected_stems[:10], "...",expected_stems[-10:])
+
+rule clean:
+    shell: "rm -rfv *log *tsv"

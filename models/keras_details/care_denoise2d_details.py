@@ -45,6 +45,7 @@ def train(train, test, datafraction, optsdict):
     from keras.layers import Conv2D, MaxPooling2D, UpSampling2D
     from keras.layers.merge import Concatenate, Add
     from keras.models import Model
+    from keras.utils import multi_gpu_model
 
     import keras.backend as K
     from keras.optimizers import Adam
