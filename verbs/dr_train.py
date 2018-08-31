@@ -8,6 +8,7 @@ options:
     -R <rpath> --resultspath=<rpath>           path to store results or checkpoints [default: deeprace-results]
     -b <backe> --backend=<backe>               which backend to use [default: keras]
     -e <neps> --nepochs=<neps>                 number of epochs to train [default: 0]
+    -r <repeats> --nrepeats=<repeats>          how many times to repeat the benchmark (unsupported yet) [default: 1]
     -d <ds> --dataset=<ds>                     the dataset to use (depends on the model of choice) [default: model_default]
     -f <dfrac> --datafraction=<dfrac>          fraction of the dataset to use, helpful for debugging/testing [default: 1.]
     -t <output> --timings=<output>             file to store the individual timings in [default: timings.tsv]
@@ -25,6 +26,7 @@ import logging
 import datetime
 import socket
 import versioneer
+import yaml
 
 try:
     from importlib import util as ilib_util
@@ -89,7 +91,7 @@ def load_model(descriptor):
     return (loaded,param_dict)
 
 def describe(modelname):
-    
+
     (loaded,opts_from_name) = load_model(modelname[0])
 
     logging.info("available options for {}".format(modelname[0]))
@@ -156,49 +158,46 @@ def run_model(args):
     hname = socket.getfqdn().split(".")[0]
     hist, timings, details = model.train(train,test,datafraction=args["--datafraction"])
 
+    yaml_file = os.path.splitext(args["--timings"])[0]+".yaml"
+    with open(yaml_file,'w') as yamlf:
+
+        to_write = {
+            "host"             : hname,
+            "model"            : modelname,
+            "dataset"          : model.dataset,
+            "load_dur_sec"     : (end-start).total_seconds(),
+            "ntrain"           : ntrain,
+            "ntest"            : ntest,
+            "datafraction"     : args["--datafraction"],
+            "train_start"      : timings.train_begin.strftime("%Y%m%d:%H%M%S"),
+            "train_end"        : timings.train_end.strftime("%Y%m%d:%H%M%S"),
+            "opts"             : opts,
+            "n_model_params"   : details['num_weights'],
+            "versions"         : model.versions(),
+            "deeprace_version" : versioneer.get_version(),
+            "uuid"             : "",
+            "comment"          : args["--comment"]
+        }
+
+        yaml.dump(to_write, yamlf)
 
     with open(args["--timings"],'w') as csvout:
 
-        front_tags = "host,model,dataset,load_dur_sec,ntrain,ntest,datafraction,train_start,train_end".split(",")
-        hist_tags = "epoch,rel_epoch_start_sec,epoch_dur_sec".split(",")
+        tags = "uuid,epoch,rel_epoch_start_sec,epoch_dur_sec".split(",")
         for k in sorted(hist.keys()):
-            hist_tags.append(k)
-        rear_tags = "opts,n_model_params,versions,deeprace_version,comment".split(",")
-        tags = front_tags + hist_tags + rear_tags
-
+            tags.append(k)
 
         header_str = args["--separator"].join(tags)
         csvout.write(header_str+"\n")
         logging.info("wrote %s",header_str)
 
-        front_constant = ("{sep}".join([ str("{%s}" % item) for item in front_tags ])).format(
-            host=hname,
-            model=modelname,
-            dataset=model.dataset,
-            load_dur_sec=(end-start).total_seconds(),
-            ntrain=ntrain,
-            ntest=ntest,
-            datafraction=args["--datafraction"],
-            train_start=timings.train_begin.strftime("%Y%m%d:%H%M%S"),
-            train_end=timings.train_end.strftime("%Y%m%d:%H%M%S"),
-            sep=args["--separator"]
-        )
-        rear_constant = (args["--separator"].join([ str("{%s}" % item) for item in rear_tags ])).format(
-            opts=opts,
-            n_model_params=details['num_weights'],
-            versions=model.versions(),
-            deeprace_version=versioneer.get_version(),
-            comment=args["--comment"]
-        )
 
         for i in range(len(timings.epoch_durations)):
 
-            fields = [front_constant, str(i), str(timings.epoch_start[i]), str(timings.epoch_durations[i])]
+            fields = [str(i), str(timings.epoch_start[i]), str(timings.epoch_durations[i])]
 
             for k in sorted(hist.keys()):
                 fields.append(str(hist[k][i]))
-
-            fields.append(rear_constant)
 
             line = args["--separator"].join(fields)
             csvout.write(line+"\n")
