@@ -24,13 +24,13 @@ def can_train():
 
     if keras_found:
         from keras import __version__ as kv
-        max_version = "2.1.5"
+        max_version = "2.2.2"
         min_version = "2.1.0"
 
         if versiontuple(kv,3) >= versiontuple(min_version,3) and versiontuple(kv,3) <= versiontuple(max_version,3):
             available_backends.append("keras")
         else:
-            logging.debug("your keras version %s is not supported (%s - %s)",str(kv),minv,maxv)
+            logging.debug("your keras version %s is not supported (%s - %s)",str(kv),min_version,max_version)
 
     return available_backends
 

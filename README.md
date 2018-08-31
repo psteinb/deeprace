@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/psteinb/deeprace.svg?branch=master)](https://travis-ci.org/psteinb/deeprace)
+
 # DeepRace [![DOI](https://zenodo.org/badge/123592478.svg)](https://zenodo.org/badge/latestdoi/123592478)
 
 

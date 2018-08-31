@@ -1,4 +1,9 @@
 pytest
 invoke==0.14.0
 tox
-#docopt==0.6.2
+docopt==0.6.2
+numpy
+tifffile==0.15.1
+keras==2.2.2
+tensorflow==1.10.0
+#versioneer
