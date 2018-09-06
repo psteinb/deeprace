@@ -27,7 +27,9 @@ import datetime
 import socket
 import versioneer
 import yaml
-from verbs.utils import uuid_from_this, yaml_this
+from collections import OrderedDict
+
+from verbs.utils import uuid_from_this, yaml_this, yaml_ordered
 
 try:
     from importlib import util as ilib_util
@@ -158,30 +160,30 @@ def run_model(args):
 
     hname = socket.getfqdn().split(".")[0]
     hist, timings, details = model.train(train,test,datafraction=args["--datafraction"])
-    uuid= str(uuid_from_this(modelname, model.dataset, opts,float(args["--datafraction"])))
+    uuid= str(uuid_from_this(modelname, model.dataset, opts,float(args["--datafraction"]),versioneer.get_version()))
 
     yaml_file = os.path.splitext(args["--timings"])[0]+".yaml"
     with open(yaml_file,'w') as yamlf:
 
-        to_write = yaml_this(
-            host             = hname,
-            model            = modelname,
-            backend          = args["--backend"],
-            dataset          = model.dataset,
-            load_dur_sec     = (end-start).total_seconds(),
-            ntrain           = ntrain,
-            ntest            = ntest,
-            datafraction     = float(args["--datafraction"]),
-            train_start      = timings.train_begin.strftime("%Y%m%d:%H%M%S"),
-            train_end        = timings.train_end.strftime("%Y%m%d:%H%M%S"),
-            opts             = opts,
-            n_model_params   = int(details['num_weights']),
-            versions         = model.versions(),
-            deeprace_version = versioneer.get_version(),
-            uuid             = uuid,
-            comment          = args["--comment"]
-        )
+        odict = OrderedDict()
+        odict["host"]             =   hname
+        odict["model"]            =   modelname
+        odict["backend"]          =   args["--backend"]
+        odict["dataset"]          =   model.dataset
+        odict["load_dur_sec"]     =   (end-start).total_seconds()
+        odict["ntrain"]           =   ntrain
+        odict["ntest"]            =   ntest
+        odict["datafraction"]     =   float(args["--datafraction"])
+        odict["train_start"]      =   timings.train_begin.strftime("%Y%m%d:%H%M%S")
+        odict["train_end"]        =   timings.train_end.strftime("%Y%m%d:%H%M%S")
+        odict["opts"]             =   opts
+        odict["n_model_params"]   =   int(details['num_weights'])
+        odict["versions"]         =   model.versions()
+        odict["deeprace_version"] =   versioneer.get_version()
+        odict["uuid"]             =   uuid
+        odict["comment"]          =   args["--comment"]
 
+        to_write = yaml_ordered(odict)
         #yaml.dump(to_write, yamlf, default_flow_style=False)
         yamlf.write(to_write)
         logging.info("wrote %s",yaml_file)
