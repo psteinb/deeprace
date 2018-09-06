@@ -476,7 +476,14 @@ def train(train, test, datafraction, optsdict):
     weights_fname = "{date}_{finishtime}_deeprace_{modeldescr}_finalweights.h5".format(date=time.strftime("%Y%m%d"),
                                                                                        finishtime=time.strftime("%H%M%S"),
                                                                                        modeldescr=model_type)
+    weights_fname = os.path.join(optsdict["scratchspace"],weights_fname)
+    model_fname = os.path.splitext(weights_fname)[0] + ".json"
 
-    model.save_weights(os.path.join(optsdict["scratchspace"],weights_fname))
+    with open(model_fname,"w") as mf:
+        mf.write(model.to_json())
+        mf.close()
 
+    model.save_weights(weights_fname)
+
+    logging.info("model saved in {0} and {1}".format(model_fname,weights_fname))
     return hist.history, stopw, { 'num_weights' : model_size(model) }
