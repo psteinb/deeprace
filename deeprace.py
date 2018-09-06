@@ -82,6 +82,13 @@ def main():
         logging.debug(run_args)
         rvalue = verbs.dr_train.run_model(run_args)
 
+    elif args['<command>'] == 'test':
+        import verbs.dr_test
+        run_args = docopt(verbs.dr_test.__doc__, argv=argv)
+        logging.debug("[test] handing over to run_model:")
+        logging.debug(run_args)
+        rvalue = verbs.dr_test.infer_model(run_args)
+
     elif args['<command>'] == 'describe':
         import verbs.dr_train
         verbs.dr_train.describe(args['<args>'])
