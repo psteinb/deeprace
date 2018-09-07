@@ -1,5 +1,5 @@
 """
-usage: deeprace train [options] [--] <models>
+usage: deeprace train [options] [--] <model>
 
 options:
     -h, --help                                 print this help message
@@ -41,14 +41,14 @@ def run_model(args):
 
     logging.debug("received %s as args",args)
 
-    if not "<models>" in args.keys():
+    if not "<model>" in args.keys():
         logging.error("no model recieved")
         return 1
 
     ############################################################################
     ## IMPORT MODEL (as MODULE)
     ##
-    modelname = args["<models>"]
+    modelname = args["<model>"]
     (loaded,opts_from_name) = load_model(modelname)
 
     model = loaded.model()
@@ -85,7 +85,7 @@ def run_model(args):
         sys.exit(1)
 
     logging.info("loading the data took %f seconds", ((end-start).total_seconds()))
-    logging.info("running %s", modelname)
+    logging.info("running %s training", modelname)
 
     #update dictionary here
     d2 = model.options()
@@ -118,6 +118,7 @@ def run_model(args):
         odict = OrderedDict()
         odict["host"]             =   hname
         odict["model"]            =   modelname
+        odict["mode"]             =   "training"
         odict["backend"]          =   args["--backend"]
         odict["dataset"]          =   model.dataset
         odict["load_dur_sec"]     =   (end-start).total_seconds()

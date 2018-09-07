@@ -60,6 +60,7 @@ class model(base_model):
         self.subtract_pixel_mean =True
         self.checkpoint_epochs =False
         self.scratchspace = os.getcwd()
+        self.weights_file = None
         self.backend = "keras"
         self.n_gpus = 1
         if self.available_datasets() and len(self.available_datasets())>0:
@@ -164,6 +165,34 @@ class model(base_model):
             from .keras_details import tfkeras_resnet_details as tfkeras_resnet
             logging.info("using tensorflow.keras")
             return tfkeras_resnet.train(train,test,datafraction,self.__dict__)
+
+
+    def infer(self, data ,  num_inferences = 1):
+
+        """setup the resnet and run the train function"""
+
+        datafraction = float(datafraction)
+        if datafraction > 1.0 or datafraction < 0:
+            logging.error("resnet :: datafraction can only be [0,1]")
+
+        #TODO: this if clause is non-sense, there must be a better way
+        if "keras" == self.backend.lower():
+            from .keras_details import resnet_details as keras_resnet
+            logging.info("using keras")
+            return keras_resnet.infer(data, num_inferences ,self.__dict__)
+        else:
+            logging.warning("tf.keras and tensorflow backend not implemented yet")
+            return None, None, None
+
+        # if "tf" == self.backend.lower() or "tensorflow" == self.backend.lower():
+        #     from .tf_details import resnet_details as tf_resnet
+        #     logging.info("using tensorflow")
+        #     return tf_resnet.train(train,test,datafraction,self.__dict__)
+
+        # if "tf.keras" == self.backend.lower() or "tensorflow.keras" == self.backend.lower():
+        #     from .keras_details import tfkeras_resnet_details as tfkeras_resnet
+        #     logging.info("using tensorflow.keras")
+        #     return tfkeras_resnet.train(train,test,datafraction,self.__dict__)
 
     def versions(self):
 

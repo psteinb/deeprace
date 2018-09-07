@@ -34,3 +34,9 @@ class base_model(metaclass=abc.ABCMeta):
     def train(train, test, datafraction = 1.):
         """ run the training of the model with train data <train|np.array> and <test|np.array>, but use only datafraction for training """
         pass
+
+
+    @abc.abstractmethod
+    def infer(data, num_inferences = 1):
+        """ infer the model randomly selection images from <train|np.array> and <test|np.array>, but use only datafraction for training """
+        pass

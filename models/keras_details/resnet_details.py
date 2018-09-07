@@ -54,6 +54,38 @@ def compute_depth(n=3,version=1):
         value = n * 9 + 2
     return value
 
+def infer(data, num_inferences, optsdict):
+
+    """ perform <num_inferences> on the given data """
+
+    from keras.models import model_from_json
+
+    ####################################################################################################################
+    ## LOADING THE MODEL
+    ##
+    no_ext = os.path.splitext(optsdict.weights_file)[0]
+    model_json = no_ext + '.json'
+    model_weights = no_ext + '.h5'
+
+    with open("model.json","r") as f:
+        json_str = f.read()
+        f.close()
+    model = keras.models.model_from_json(json_str)
+
+    # Weights
+    model.load_weights("model.hdf5")
+
+    nsamples_infer = num_inferences if num_inferences <= data[0].shape[0] else data[0].shape[0]
+    batch_size=int(optsdict["batch_size"])
+
+    start = datetime.datetime.now()
+    predictions = model.evaluate(data[0][:nsamples_infer,...],verbose=True, batch_size = batch_size)
+    end = datetime.datetime.now()
+
+    logging.info("predictions took %f sec", ((end-start).total_seconds()))
+
+    return None, [(end-start).total_seconds()], predictions
+
 def train(train, test, datafraction, optsdict):
 
     """setup the resnet and run the train function"""
