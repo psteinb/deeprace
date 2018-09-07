@@ -128,10 +128,12 @@ class model(base_model):
         #TODO: this if clause is non-sense, there must be a better way
         if "keras" == self.backend.lower():
             from .keras_details import care_denoise2d_details as keras_care_denoise2d
+            logging.info("using keras")
             return keras_care_denoise2d.train(train,test,datafraction,self.__dict__)
 
         if "tf.keras" == self.backend.lower() or "tensorflow.keras" == self.backend.lower():
             from .keras_details import tfkeras_care_denoise2d_details as tfkeras_care_denoise2d
+            logging.info("using tensorflow.keras")
             return tfkeras_care_denoise2d.train(train,test,datafraction,self.__dict__)
 
     def versions(self):
