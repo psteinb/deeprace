@@ -5,7 +5,8 @@ import os
 import time
 import importlib
 
-from ..tools.utils import versiontuple
+from models.tools.utils import versiontuple
+from models.keras_details.model_utils import to_disk
 
 
 def data_loader(temp_path, dsname = "cifar10" ):
@@ -483,15 +484,6 @@ def train(train, test, datafraction, optsdict):
                                                                                        finishtime=time.strftime("%H%M%S"),
                                                                                        modeldescr=model_type)
 
-    weights_fname = os.path.join(optsdict["scratchspace"],weights_fname)
-    model_fname = os.path.splitext(weights_fname)[0] + ".json"
-
-    with open(model_fname,"w") as mf:
-        mf.write(model.to_json())
-        mf.close()
-
-    model.save_weights(weights_fname)
-
-    logging.info("model saved in {0} and {1}".format(model_fname,weights_fname))
+    to_disk(model,weights_fname)
 
     return hist.history, stopw, { 'num_weights' : model_size(model) }

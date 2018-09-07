@@ -6,7 +6,7 @@ import math
 import time
 
 from distutils.util import strtobool
-from .base import base_model
+from models.base import base_model
 
 
 def compute_depth(n=3,version=1):
@@ -70,12 +70,12 @@ class model(base_model):
     def available_datasets(self):
         datasets = []
 
-        from .keras_details import care_denoise2d_details as keras_net
+        from models.keras_details import care_denoise2d_details as keras_net
         if keras_net.can_train() != []:
             if not 'cifar10' in datasets:
                 datasets.append('cifar10')
 
-        from .keras_details import tfkeras_care_denoise2d_details as tfkeras_net
+        from models.keras_details import tfkeras_care_denoise2d_details as tfkeras_net
         if tfkeras_net.can_train() != []:
             if not 'cifar10' in datasets:
                 datasets.append('cifar10')
@@ -153,13 +153,16 @@ class model(base_model):
         #TODO: this if clause is non-sense, there must be a better way
         if "keras" == self.backend.lower():
             from .keras_details import resnet_details as keras_resnet
+            logging.info("using keras")
             return keras_resnet.train(train,test,datafraction,self.__dict__)
         if "tf" == self.backend.lower() or "tensorflow" == self.backend.lower():
             from .tf_details import resnet_details as tf_resnet
+            logging.info("using tensorflow")
             return tf_resnet.train(train,test,datafraction,self.__dict__)
 
         if "tf.keras" == self.backend.lower() or "tensorflow.keras" == self.backend.lower():
             from .keras_details import tfkeras_resnet_details as tfkeras_resnet
+            logging.info("using tensorflow.keras")
             return tfkeras_resnet.train(train,test,datafraction,self.__dict__)
 
     def versions(self):
