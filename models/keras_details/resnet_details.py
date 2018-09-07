@@ -4,6 +4,8 @@ import numpy as np
 import os
 import time
 import importlib
+import datetime
+
 from models.tools.utils import versiontuple
 from models.keras_details.model_utils import to_disk
 
@@ -58,24 +60,36 @@ def infer(data, num_inferences, optsdict):
 
     """ perform <num_inferences> on the given data """
 
+    import keras
     from keras.models import model_from_json
-
+    from keras.optimizers import Adam
     ####################################################################################################################
     ## LOADING THE MODEL
     ##
-    no_ext = os.path.splitext(optsdict.weights_file)[0]
+    no_ext = os.path.splitext(optsdict["weights_file"])[0]
     model_json = no_ext + '.json'
-    model_weights = no_ext + '.h5'
 
-    with open("model.json","r") as f:
+    if not os.path.exists(model_json):
+        logging.error("%s does not exist, unable to load a model and thus perform inference!",model_json)
+        return None, None, None
+
+    model_weights = no_ext + '.h5'
+    if not os.path.exists(model_weights):
+        logging.error("%s does not exist, unable to load the model weights and thus perform inference!",model_json)
+        return None, None, None
+
+    ## Watch out for
+    with open(model_json,"r") as f:
         json_str = f.read()
         f.close()
+
     model = keras.models.model_from_json(json_str)
 
     # Weights
-    model.load_weights("model.hdf5")
+    model.load_weights(model_weights)
+    model.compile(optimizer=Adam())
 
-    nsamples_infer = num_inferences if num_inferences <= data[0].shape[0] else data[0].shape[0]
+    nsamples_infer = int(num_inferences) if int(num_inferences) <= data[0].shape[0] else data[0].shape[0]
     batch_size=int(optsdict["batch_size"])
 
     start = datetime.datetime.now()

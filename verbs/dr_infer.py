@@ -6,7 +6,7 @@ options:
     -D <dpath> --datapath=<dpath>              path used for temporary storage, e.g. for the input data, checkpoints etc [default: datasets]
     -r <repeats> --nrepeats=<repeats>          how many times to repeat the test phase (unsupported yet) [default: 1]
     -d <ds> --dataset=<ds>                     the dataset to use (depends on the model of choice) [default: model_default]
-    -n <ninfer> --num_inferences=<dfrac>       mnumber of inferences to perform [default: 1.]
+    -n <ninfer> --num_inferences=<dfrac>       mnumber of inferences to perform [default: 1]
     -t <output> --timings=<output>             file to store the individual timings in [default: inference.tsv]
     -s <sep> --separator=<sep>                 seperator for the output data [default: \t]
     -c <cmt> --comment=<cmt>                   comment to add to the measurement
@@ -25,6 +25,8 @@ import yaml
 from collections import OrderedDict
 
 from verbs.utils import uuid_from_this, yaml_this, yaml_ordered
+from verbs.loaders import import_model, load_model
+
 
 try:
     from importlib import util as ilib_util
@@ -40,15 +42,13 @@ def infer_model(args):
     if not "<model>" in args.keys():
         logging.error("no model recieved")
         return 1
-    else:
-        logging.warning("not implemented yet")
-        return 0
+
 
     model_descriptor = args["<model>"]
     config_options = {}
     if os.path.exists(model_descriptor):
         with open(model_descriptor, 'r') as yf:
-            config_options = yum.load(yf)
+            config_options = yaml.load(yf)
             yf.close()
         modelname = config_options["model"]
     else:
@@ -105,7 +105,7 @@ def infer_model(args):
 
     hname = socket.getfqdn().split(".")[0]
 
-    hist, timings, details = model.infer(test,num_inferences=args["--num_inferences"], model.__dict__)
+    hist, timings, details = model.infer(test,args["--num_inferences"])
 
     uuid= str(uuid_from_this(modelname, model.dataset, opts,float(args["--num_inferences"]),versioneer.get_version()))
 
@@ -116,7 +116,7 @@ def infer_model(args):
         odict["host"]             =   hname
         odict["model"]            =   modelname
         odict["mode"]             =   "inference"
-        odict["backend"]          =   args["--backend"]
+        odict["backend"]          =   model.backend
         odict["dataset"]          =   model.dataset
         odict["load_dur_sec"]     =   (end-start).total_seconds()
         odict["num_inferences"]   =   float(args["--num_inferences"])
@@ -141,7 +141,8 @@ def infer_model(args):
 
         for i in range(len(timings)):
 
-            fields = [uuid,timings[i]]
+            fields = [uuid,str(timings[i])]
+
             line = args["--separator"].join(fields)
             csvout.write(line+"\n")
 

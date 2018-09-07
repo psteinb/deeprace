@@ -83,9 +83,9 @@ def main():
         rvalue = verbs.dr_train.run_model(run_args)
 
     elif args['<command>'] == 'infer':
-        import verbs.dr_test
+        import verbs.dr_infer
         run_args = docopt(verbs.dr_infer.__doc__, argv=argv)
-        logging.debug("[test] handing over to run_model:")
+        logging.debug("[infer] handing over to run_model:")
         logging.debug(run_args)
         rvalue = verbs.dr_infer.infer_model(run_args)
 

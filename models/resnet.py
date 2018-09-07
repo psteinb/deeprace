@@ -171,11 +171,6 @@ class model(base_model):
 
         """setup the resnet and run the train function"""
 
-        datafraction = float(datafraction)
-        if datafraction > 1.0 or datafraction < 0:
-            logging.error("resnet :: datafraction can only be [0,1]")
-
-        #TODO: this if clause is non-sense, there must be a better way
         if "keras" == self.backend.lower():
             from .keras_details import resnet_details as keras_resnet
             logging.info("using keras")
