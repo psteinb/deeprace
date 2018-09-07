@@ -109,12 +109,18 @@ def run_model(args):
         logging.error("no model recieved")
         return 1
 
+    ############################################################################
+    ## IMPORT MODEL (as MODULE)
+    ##
     modelname = args["<models>"]
     (loaded,opts_from_name) = load_model(modelname)
 
     model = loaded.model()
     logging.info("successfully imported %s",modelname)
 
+    ############################################################################
+    ## HANDLE MODEL OPTIONS
+    ##
     model.backend=args["--backend"]
     deciphered = model.options()
     deciphered.update(opts_from_name)
@@ -159,7 +165,15 @@ def run_model(args):
     model.scratchspace = args["--resultspath"]
 
     hname = socket.getfqdn().split(".")[0]
+
+    ############################################################################
+    ## PERFORM TRAINING
+    ##
     hist, timings, details = model.train(train,test,datafraction=args["--datafraction"])
+
+    ############################################################################
+    ## WRITE RESULTS
+    ##
     uuid= str(uuid_from_this(modelname, model.dataset, opts,float(args["--datafraction"]),versioneer.get_version()))
 
     yaml_file = os.path.splitext(args["--timings"])[0]+".yaml"
