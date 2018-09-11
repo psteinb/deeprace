@@ -44,6 +44,7 @@ def available_models():
             logging.warning("found %s but could not find a loader for it" % fname)
         else:
             current = importlib.import_module(name)
+            logging.debug("instantiating %s" % name)
             m = current.model()
             value[modelstem] = m.provides()
 
