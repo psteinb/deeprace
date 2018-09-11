@@ -136,6 +136,28 @@ class model(base_model):
             logging.info("using tensorflow.keras")
             return tfkeras_care_denoise2d.train(train,test,datafraction,self.__dict__)
 
+    def infer(self, data ,  num_inferences = 1):
+
+        """setup the resnet and run the train function"""
+
+        logging.warning("inference not implemented yet for care_denoise")
+        return None, None, None
+
+        # if "keras" == self.backend.lower():
+        #     from .keras_details import resnet_details as keras_resnet
+        #     logging.info("using keras backend")
+        #     return keras_resnet.infer(data, num_inferences ,self.__dict__)
+
+        # if "tf.keras" == self.backend.lower() or "tensorflow.keras" == self.backend.lower():
+        #     from .keras_details import tfkeras_resnet_details as tfkeras_resnet
+        #     logging.info("using tensorflow.keras backend")
+        #     return tfkeras_resnet.infer(data, num_inferences ,self.__dict__)
+
+        # if "tf" == self.backend.lower() or "tensorflow" == self.backend.lower():
+        #     from .tf_details import resnet_details as tf_resnet
+        #     logging.info("using tensorflow")
+        #     return tf_resnet.train(train,test,datafraction,self.__dict__)
+
     def versions(self):
 
         value = ""
