@@ -15,8 +15,9 @@ options:
 
 The most commonly used git commands are:
    list      list available models
-   train     run training on a given model
+   train     run training for a given model
    describe  show available parameters for given model
+   infer     run inference for a given model
 
 See 'deeprace help <command>' for more information on a specific command.
 
