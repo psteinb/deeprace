@@ -31,7 +31,12 @@ from verbs.loaders import import_model, load_model
 
 def describe(modelname):
 
-    (loaded,opts_from_name) = load_model(modelname[0])
+    try:
+        (loaded,opts_from_name) = load_model(modelname[0])
+    except Exception as ex:
+
+        logging.error("model(s) {} unknown. Exiting.".format(modelname))
+        return
 
     logging.info("available options for {}".format(modelname[0]))
     for (k,v) in loaded.model().options().items():
