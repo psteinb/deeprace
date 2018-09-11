@@ -3,6 +3,7 @@ usage: deeprace infer [options] [--] <model>
 
 options:
     -h, --help                                 print this help message
+    -O <mopts> --meta-options=<mopts>          hyper-parameters for training, e.g. batch_size
     -D <dpath> --datapath=<dpath>              path used for temporary storage, e.g. for the input data, checkpoints etc [default: datasets]
     -r <repeats> --nrepeats=<repeats>          how many times to repeat the test phase (unsupported yet) [default: 1]
     -d <ds> --dataset=<ds>                     the dataset to use (depends on the model of choice) [default: model_default]
@@ -69,6 +70,7 @@ def infer_model(args):
         logging.error("inference with tensorflow as backend is not implemented yet")
         return 1
 
+    #remove unneeded keys here
     deciphered = model.options()
     deciphered.update(opts_from_name)
     meta_opts = {}
@@ -133,7 +135,7 @@ def infer_model(args):
 
     with open(args["--timings"],'w') as csvout:
 
-        tags = "uuid,infer_dur_sec".split(",")
+        tags = "uuid,batch_id,infer_dur_sec,predictions".split(",")
 
         header_str = args["--separator"].join(tags)
         csvout.write(header_str+"\n")
@@ -141,7 +143,7 @@ def infer_model(args):
 
         for i in range(len(timings)):
 
-            fields = [uuid,str(timings[i])]
+            fields = [uuid,str(i),str(timings[i]),str(hist[i])]
 
             line = args["--separator"].join(fields)
             csvout.write(line+"\n")
