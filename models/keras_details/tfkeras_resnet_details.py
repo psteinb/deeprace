@@ -4,6 +4,8 @@ import numpy as np
 import os
 import time
 import importlib
+import random
+import datetime
 
 from models.tools.utils import versiontuple
 from models.keras_details.model_utils import to_disk
@@ -56,6 +58,60 @@ def compute_depth(n=3,version=1):
     elif version == 2:
         value = n * 9 + 2
     return value
+
+def infer(data, num_inferences, optsdict):
+
+    """ perform <num_inferences> on the given data """
+
+    import tensorflow as tf
+
+    ####################################################################################################################
+    ## LOADING THE MODEL
+    ##
+    no_ext = os.path.splitext(optsdict["weights_file"])[0]
+    model_json = no_ext + '.json'
+
+    if not os.path.exists(model_json):
+        logging.error("%s does not exist, unable to load a model and thus perform inference!",model_json)
+        return None, None, None
+
+    model_weights = no_ext + '.h5'
+    if not os.path.exists(model_weights):
+        logging.error("%s does not exist, unable to load the model weights and thus perform inference!",model_json)
+        return None, None, None
+
+    ## Watch out for
+    with open(model_json,"r") as f:
+        json_str = f.read()
+        f.close()
+
+    model = tf.keras.models.model_from_json(json_str)
+
+    # Weights
+    model.load_weights(model_weights)
+    model.compile(optimizer=tf.keras.optimizers.Adam())
+
+    nsamples_infer = int(num_inferences) if int(num_inferences) <= data[0].shape[0] else data[0].shape[0]
+    batch_size=int(optsdict["batch_size"]) if int(optsdict["batch_size"]) < nsamples_infer else 1
+
+    n_iterations = nsamples_infer // batch_size
+    timings = [0]*n_iterations
+    predictions = [0.]*n_iterations
+
+    for t in range(n_iterations):
+
+        random_id = int(round(random.uniform(0,data[0].shape[0] - batch_size)))
+        input_data = data[0][random_id:random_id+batch_size,...]
+
+        start = datetime.datetime.now()
+        result = model.evaluate(input_data,verbose=True, batch_size = batch_size)
+        end = datetime.datetime.now()
+
+        timings[t] = ((end-start).total_seconds())
+        predictions[t] = result
+
+
+    return predictions, timings, None
 
 def train(train, test, datafraction, optsdict):
 
@@ -484,6 +540,8 @@ def train(train, test, datafraction, optsdict):
                                                                                        finishtime=time.strftime("%H%M%S"),
                                                                                        modeldescr=model_type)
 
-    to_disk(model,weights_fname)
+    to_disk(model,
+            os.path.join(optsdict["scratchspace"],weights_fname)
+    )
 
     return hist.history, stopw, { 'num_weights' : model_size(model) }

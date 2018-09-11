@@ -5,6 +5,7 @@ import os
 import time
 import importlib
 import datetime
+import random
 
 from models.tools.utils import versiontuple
 from models.keras_details.model_utils import to_disk
@@ -90,15 +91,26 @@ def infer(data, num_inferences, optsdict):
     model.compile(optimizer=Adam())
 
     nsamples_infer = int(num_inferences) if int(num_inferences) <= data[0].shape[0] else data[0].shape[0]
-    batch_size=int(optsdict["batch_size"])
+    batch_size=int(optsdict["batch_size"]) if int(optsdict["batch_size"]) < nsamples_infer else 1
 
-    start = datetime.datetime.now()
-    predictions = model.evaluate(data[0][:nsamples_infer,...],verbose=True, batch_size = batch_size)
-    end = datetime.datetime.now()
+    n_iterations = nsamples_infer // batch_size
+    timings = [0]*n_iterations
+    predictions = [0.]*n_iterations
 
-    logging.info("predictions took %f sec", ((end-start).total_seconds()))
+    for t in range(n_iterations):
 
-    return None, [(end-start).total_seconds()], predictions
+        random_id = int(round(random.uniform(0,data[0].shape[0] - batch_size)))
+        input_data = data[0][random_id:random_id+batch_size,...]
+
+        start = datetime.datetime.now()
+        result = model.evaluate(input_data,verbose=True, batch_size = batch_size)
+        end = datetime.datetime.now()
+
+        timings[t] = ((end-start).total_seconds())
+        predictions[t] = result
+
+
+    return predictions, timings, None
 
 def train(train, test, datafraction, optsdict):
 
@@ -524,7 +536,7 @@ def train(train, test, datafraction, optsdict):
                                                                                        finishtime=time.strftime("%H%M%S"),
                                                                                        modeldescr=model_type)
 
-    to_disk(model,weights_fname)
+    to_disk(model,os.path.join(optsdict["scratchspace"],weights_fname))
 
     return hist.history, stopw, { 'num_weights' : model_size(model) }
 

@@ -326,7 +326,8 @@ def train(train, test, datafraction, optsdict):
                                                                                        finishtime=time.strftime("%H%M%S"),
                                                                                        modeldescr=model_type)
 
-    to_disk(model, weights_fname)
+    to_disk(model,
+            os.path.join(optsdict["scratchspace"],weights_fname))
 
     return hist.history, stopw, { 'num_weights' : model_size(model) }
 
