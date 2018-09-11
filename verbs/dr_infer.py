@@ -80,7 +80,7 @@ def infer_model(args):
                          (item.split('=') for item in args["--meta-options"].split(',')))
         deciphered.update(meta_opts)
 
-    opts = ",".join(["{k}={v}".format(k=item[0],v=item[1]) for item in deciphered.items() ])
+    opts = ",".join(["{k}={v}".format(k=item[0],v=item[1]) for item in deciphered.items() if item[0] not in ["epochs","subtract_pixel_mean","data_augmentation", "checkpoint_epochs"] ])
     deciphered['datapath'] = args["--datapath"]
     if 'model_default' != args["--dataset"].lower():
         model.dataset = args["--dataset"].lower()
