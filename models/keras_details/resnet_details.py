@@ -126,7 +126,7 @@ def train(train, test, datafraction, optsdict):
         x_train -= x_train_mean
         x_test -= x_train_mean
 
-    logging.info('x_train shape: %s, %i samples', str(x_train.shape),x_train.shape[0])
+    logging.info('x_train shape: {0}, {1} samples ({2})'.format(str(x_train.shape),x_train.shape[0],x_train.dtype))
     logging.info('y_train shape: %s, %i samples', str(y_train.shape),y_train.shape[0])
     logging.info('x_test shape: %s, %i samples', str(x_test.shape),x_test.shape[0])
     logging.info('y_test shape: %s, %i samples', str(y_test.shape),y_test.shape[0])
