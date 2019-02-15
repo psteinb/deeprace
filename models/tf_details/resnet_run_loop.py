@@ -107,31 +107,6 @@ def process_record_dataset(dataset, is_training, batch_size, shuffle_buffer,
   return dataset
 
 
-def get_synth_input_fn(height, width, num_channels, num_classes):
-  """Returns an input function that returns a dataset with zeroes.
-
-  This is useful in debugging input pipeline performance, as it removes all
-  elements of file reading and image preprocessing.
-
-  Args:
-    height: Integer height that will be used to create a fake image tensor.
-    width: Integer width that will be used to create a fake image tensor.
-    num_channels: Integer depth that will be used to create a fake image tensor.
-    num_classes: Number of classes that should be represented in the fake labels
-      tensor
-
-  Returns:
-    An input_fn that can be used in place of a real one to return a dataset
-    that can be used for iteration.
-  """
-  def input_fn(is_training, data_dir, batch_size, *args):
-    images = tf.zeros((batch_size, height, width, num_channels), tf.float32)
-    labels = tf.zeros((batch_size, num_classes), tf.int32)
-    return tf.data.Dataset.from_tensors((images, labels)).repeat()
-
-  return input_fn
-
-
 ################################################################################
 # Functions for running training/eval/validation loops for the model.
 ################################################################################
@@ -425,9 +400,7 @@ def resnet_main(flags, model_function, input_function, opts = None):
         history[k] = train_hooks["CaptureTensorsHook"].captured[k]
 
     epoch_times = train_hooks["TimePerEpochHook"].summary()
-    logging.info("global was %s",str(global_times.train_begin))
     global_times.add(epoch_times)
-    logging.info("global is %s",str(global_times.train_begin))
 
 
   #don't ask about the following I am happy I got this far
@@ -436,6 +409,10 @@ def resnet_main(flags, model_function, input_function, opts = None):
   history["loss"] = history.pop("train_loss")
   history["acc"] = history.pop("train_accuracy")
 
+  #store the trained classifier
+  classifier.export_savedmodel("/tmp/test-saved-model",
+                               None,
+                               strip_default_attrs=True)
 
   logging.info("Completed %i epochs (acc %i, val_acc %i)", len(global_times.epoch_durations),len(history["acc"]),len(history["val_acc"]))
   return history,global_times

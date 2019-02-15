@@ -69,8 +69,6 @@ def train(train, test, datafraction, opts):
     from . import resnet_run_loop as run_loop
     opts["datafraction"] = datafraction
 
-    parser = run_loop.ResnetArgParser()
-    
     model_dir = os.path.join(opts['scratchspace'],'cifar10_model')
     model_dir = os.path.abspath(model_dir)
     if not os.path.exists(model_dir):
@@ -82,6 +80,7 @@ def train(train, test, datafraction, opts):
     opts["ntrain"] = 50000
     opts["ntest"] = 10000
 
+    parser = run_loop.ResnetArgParser()
     parser.set_defaults(data_dir=data_location,
                         model_dir=model_dir,
                         resnet_size=compute_depth(opts["n"],opts["version"]),
@@ -101,3 +100,9 @@ def train(train, test, datafraction, opts):
         shutil.rmtree(model_dir)
 
     return history, timings, { 'num_weights' : None }
+
+def infer(data, num_inferences, optsdict):
+
+    """ perform <num_inferences> on the given data """
+    from . import cifar10_main as cfmain
+    from . import resnet_run_loop as run_loop
