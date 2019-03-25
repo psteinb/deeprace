@@ -1,3 +1,4 @@
+import argparse
 import logging
 import math
 import os
@@ -8,6 +9,7 @@ import importlib
 import tarfile
 from six.moves import urllib
 from ..tools.utils import versiontuple
+from .boilerplate import ResnetArgParser
 
 def can_train():
 
@@ -61,6 +63,7 @@ def compute_depth(n=3,version=1):
         value = n * 9 + 2
     return value
 
+
 def train(train, test, datafraction, opts):
 
     """setup the resnet and run the train function, train and test will be None here as reading the files from disk needs to be part of the compute graph AFAIK """
@@ -80,7 +83,7 @@ def train(train, test, datafraction, opts):
     opts["ntrain"] = 50000
     opts["ntest"] = 10000
 
-    parser = run_loop.ResnetArgParser()
+    parser = ResnetArgParser()
     parser.set_defaults(data_dir=data_location,
                         model_dir=model_dir,
                         resnet_size=compute_depth(opts["n"],opts["version"]),

@@ -35,78 +35,6 @@ from .utils.logging.hooks import timing_summary
 
 from . import resnet_model
 
-
-################################################################################
-# Functions for input processing.
-################################################################################
-def process_record_dataset(dataset, is_training, batch_size, shuffle_buffer,
-                           parse_record_fn, num_epochs=1, num_parallel_calls=1,
-                           examples_per_epoch=0, multi_gpu=False):
-  """Given a Dataset with raw records, parse each record into images and labels,
-  and return an iterator over the records.
-
-  Args:
-    dataset: A Dataset representing raw records
-    is_training: A boolean denoting whether the input is for training.
-    batch_size: The number of samples per batch.
-    shuffle_buffer: The buffer size to use when shuffling records. A larger
-      value results in better randomness, but smaller values reduce startup
-      time and use less memory.
-    parse_record_fn: A function that takes a raw record and returns the
-      corresponding (image, label) pair.
-    num_epochs: The number of epochs to repeat the dataset.
-    num_parallel_calls: The number of records that are processed in parallel.
-      This can be optimized per data set but for generally homogeneous data
-      sets, should be approximately the number of available CPU cores.
-    examples_per_epoch: The number of examples in the current set that
-      are processed each epoch. Note that this is only used for multi-GPU mode,
-      and only to handle what will eventually be handled inside of Estimator.
-    multi_gpu: Whether this is run multi-GPU. Note that this is only required
-      currently to handle the batch leftovers (see below), and can be removed
-      when that is handled directly by Estimator.
-
-  Returns:
-    Dataset of (image, label) pairs ready for iteration.
-  """
-  # We prefetch a batch at a time, This can help smooth out the time taken to
-  # load input files as we go through shuffling and processing.
-  dataset = dataset.prefetch(buffer_size=batch_size)
-  if is_training:
-    # Shuffle the records. Note that we shuffle before repeating to ensure
-    # that the shuffling respects epoch boundaries.
-    dataset = dataset.shuffle(buffer_size=shuffle_buffer)
-
-  # If we are training over multiple epochs before evaluating, repeat the
-  # dataset for the appropriate number of epochs.
-  dataset = dataset.repeat(num_epochs)
-
-  # Currently, if we are using multiple GPUs, we can't pass in uneven batches.
-  # (For example, if we have 4 GPUs, the number of examples in each batch
-  # must be divisible by 4.) We already ensured this for the batch_size, but
-  # we have to additionally ensure that any "leftover" examples-- the remainder
-  # examples (total examples % batch_size) that get called a batch for the very
-  # last batch of an epoch-- do not raise an error when we try to split them
-  # over the GPUs. This will likely be handled by Estimator during replication
-  # in the future, but for now, we just drop the leftovers here.
-  if multi_gpu:
-    total_examples = num_epochs * examples_per_epoch
-    dataset = dataset.take(batch_size * (total_examples // batch_size))
-
-  # Parse the raw records into images and labels
-  dataset = dataset.map(lambda value: parse_record_fn(value, is_training),
-                        num_parallel_calls=num_parallel_calls)
-
-  dataset = dataset.batch(batch_size)
-
-  # Operations between the final prefetch and the get_next call to the iterator
-  # will happen synchronously during run time. We prefetch here again to
-  # background all of the above processing work and keep it out of the
-  # critical training path.
-  dataset = dataset.prefetch(1)
-
-  return dataset
-
-
 ################################################################################
 # Functions for running training/eval/validation loops for the model.
 ################################################################################
@@ -288,7 +216,7 @@ def validate_batch_size_for_multi_gpu(batch_size):
 
 def resnet_main(flags, model_function, input_function, opts = None):
   # Using the Winograd non-fused algorithms provides a small performance boost.
-  os.environ['TF_ENABLE_WINOGRAD_NONFUSED'] = '1'
+  # os.environ['TF_ENABLE_WINOGRAD_NONFUSED'] = '1'
   epochs_per_eval = flags.train_epochs // flags.epochs_between_evals
   steps_per_epoch = int(opts["ntrain"]) // flags.batch_size
 
@@ -360,11 +288,15 @@ def resnet_main(flags, model_function, input_function, opts = None):
     logging.info('Starting a training cycle. %s',train_hooks.keys())
 
     def input_fn_train():
-      return input_function(True, flags.data_dir, flags.batch_size,
+      return input_function(True,
+                            flags.data_dir,
+                            flags.batch_size,
                             flags.epochs_between_evals,
-                            flags.num_parallel_calls, flags.multi_gpu)
+                            flags.num_parallel_calls,
+                            flags.multi_gpu)
 
-    classifier.train(input_fn=input_fn_train, hooks=train_hooks.values(),
+    classifier.train(input_fn=input_fn_train,
+                     hooks=train_hooks.values(),
                      max_steps=flags.max_train_steps)
 
 
@@ -409,34 +341,13 @@ def resnet_main(flags, model_function, input_function, opts = None):
   history["loss"] = history.pop("train_loss")
   history["acc"] = history.pop("train_accuracy")
 
-  #store the trained classifier
-  classifier.export_savedmodel("/tmp/test-saved-model",
-                               None,
-                               strip_default_attrs=True)
+
+
+  servable_model_path = classifier.export_savedmodel('/tmp/test-saved-model', input_fn_eval, as_text=True);
+  # classifier.export_savedmodel("/tmp/test-saved-model",
+  #                              None,
+  #                              strip_default_attrs=True)
 
   logging.info("Completed %i epochs (acc %i, val_acc %i)", len(global_times.epoch_durations),len(history["acc"]),len(history["val_acc"]))
   return history,global_times
 
-class ResnetArgParser(argparse.ArgumentParser):
-  """Arguments for configuring and running a Resnet Model.
-  """
-
-  def __init__(self, resnet_size_choices=None):
-    super(ResnetArgParser, self).__init__(parents=[
-        parsers.BaseParser(),
-        parsers.PerformanceParser(),
-        parsers.ImageModelParser(),
-    ])
-
-    self.add_argument(
-        '--version', '-v', type=int, choices=[1, 2],
-        default=resnet_model.DEFAULT_VERSION,
-        help="Version of ResNet. (1 or 2) See README.md for details."
-    )
-
-    self.add_argument(
-        '--resnet_size', '-rs', type=int, default=50,
-        choices=resnet_size_choices,
-        help='[default: %(default)s] The size of the ResNet model to use.',
-        metavar='<RS>' if resnet_size_choices is None else None
-    )

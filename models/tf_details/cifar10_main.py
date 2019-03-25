@@ -86,6 +86,77 @@ def parse_record(raw_record, is_training):
   return image, label
 
 
+################################################################################
+# Functions for input processing.
+################################################################################
+def process_record_dataset(dataset, is_training, batch_size, shuffle_buffer,
+                           parse_record_fn, num_epochs=1, num_parallel_calls=1,
+                           examples_per_epoch=0, multi_gpu=False):
+  """Given a Dataset with raw records, parse each record into images and labels,
+  and return an iterator over the records.
+
+  Args:
+    dataset: A Dataset representing raw records
+    is_training: A boolean denoting whether the input is for training.
+    batch_size: The number of samples per batch.
+    shuffle_buffer: The buffer size to use when shuffling records. A larger
+      value results in better randomness, but smaller values reduce startup
+      time and use less memory.
+    parse_record_fn: A function that takes a raw record and returns the
+      corresponding (image, label) pair.
+    num_epochs: The number of epochs to repeat the dataset.
+    num_parallel_calls: The number of records that are processed in parallel.
+      This can be optimized per data set but for generally homogeneous data
+      sets, should be approximately the number of available CPU cores.
+    examples_per_epoch: The number of examples in the current set that
+      are processed each epoch. Note that this is only used for multi-GPU mode,
+      and only to handle what will eventually be handled inside of Estimator.
+    multi_gpu: Whether this is run multi-GPU. Note that this is only required
+      currently to handle the batch leftovers (see below), and can be removed
+      when that is handled directly by Estimator.
+
+  Returns:
+    Dataset of (image, label) pairs ready for iteration.
+  """
+  # We prefetch a batch at a time, This can help smooth out the time taken to
+  # load input files as we go through shuffling and processing.
+  dataset = dataset.prefetch(buffer_size=batch_size)
+  if is_training:
+    # Shuffle the records. Note that we shuffle before repeating to ensure
+    # that the shuffling respects epoch boundaries.
+    dataset = dataset.shuffle(buffer_size=shuffle_buffer)
+
+  # If we are training over multiple epochs before evaluating, repeat the
+  # dataset for the appropriate number of epochs.
+  dataset = dataset.repeat(num_epochs)
+
+  # Currently, if we are using multiple GPUs, we can't pass in uneven batches.
+  # (For example, if we have 4 GPUs, the number of examples in each batch
+  # must be divisible by 4.) We already ensured this for the batch_size, but
+  # we have to additionally ensure that any "leftover" examples-- the remainder
+  # examples (total examples % batch_size) that get called a batch for the very
+  # last batch of an epoch-- do not raise an error when we try to split them
+  # over the GPUs. This will likely be handled by Estimator during replication
+  # in the future, but for now, we just drop the leftovers here.
+  if multi_gpu:
+    total_examples = num_epochs * examples_per_epoch
+    dataset = dataset.take(batch_size * (total_examples // batch_size))
+
+  # Parse the raw records into images and labels
+  dataset = dataset.map(lambda value: parse_record_fn(value, is_training),
+                        num_parallel_calls=num_parallel_calls)
+
+  dataset = dataset.batch(batch_size)
+
+  # Operations between the final prefetch and the get_next call to the iterator
+  # will happen synchronously during run time. We prefetch here again to
+  # background all of the above processing work and keep it out of the
+  # critical training path.
+  dataset = dataset.prefetch(1)
+
+  return dataset
+
+
 def preprocess_image(image, is_training):
   """Preprocess a single image of layout [height, width, depth]."""
   if is_training:
@@ -129,10 +200,10 @@ def input_fn(is_training, data_dir, batch_size, num_epochs=1,
 
   num_images = is_training and _NUM_IMAGES['train'] or _NUM_IMAGES['validation']
 
-  return resnet_run_loop.process_record_dataset(dataset, is_training, batch_size,
-                                                _NUM_IMAGES['train'],
-                                                parse_record, num_epochs, num_parallel_calls,
-                                                examples_per_epoch=num_images, multi_gpu=multi_gpu)
+  return process_record_dataset(dataset, is_training, batch_size,
+                                _NUM_IMAGES['train'],
+                                parse_record, num_epochs, num_parallel_calls,
+                                examples_per_epoch=num_images, multi_gpu=multi_gpu)
 
 
 ###############################################################################
