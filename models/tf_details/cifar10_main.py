@@ -61,6 +61,24 @@ def get_filenames(is_training, data_dir):
   else:
     return [os.path.join(data_dir, 'test_batch.bin')]
 
+def preprocess_image(image, is_training):
+  """Preprocess a single image of layout [height, width, depth]."""
+  if is_training:
+    # Resize the image to add four extra pixels on each side.
+    image = tf.image.resize_image_with_crop_or_pad(
+        image, _HEIGHT + 8, _WIDTH + 8)
+
+    # Randomly crop a [_HEIGHT, _WIDTH] section of the image.
+    image = tf.random_crop(image, [_HEIGHT, _WIDTH, _NUM_CHANNELS])
+
+    # Randomly flip the image horizontally.
+    image = tf.image.random_flip_left_right(image)
+
+  # Subtract off the mean and divide by the variance of the pixels.
+  image = tf.image.per_image_standardization(image)
+  return image
+
+
 
 def parse_record(raw_record, is_training):
   """Parse CIFAR-10 image and label from a raw record."""
@@ -83,7 +101,7 @@ def parse_record(raw_record, is_training):
 
   image = preprocess_image(image, is_training)
 
-  return image, label
+  return { 'img' : image, 'lbl': label }
 
 
 ################################################################################
@@ -157,24 +175,6 @@ def process_record_dataset(dataset, is_training, batch_size, shuffle_buffer,
   return dataset
 
 
-def preprocess_image(image, is_training):
-  """Preprocess a single image of layout [height, width, depth]."""
-  if is_training:
-    # Resize the image to add four extra pixels on each side.
-    image = tf.image.resize_image_with_crop_or_pad(
-        image, _HEIGHT + 8, _WIDTH + 8)
-
-    # Randomly crop a [_HEIGHT, _WIDTH] section of the image.
-    image = tf.random_crop(image, [_HEIGHT, _WIDTH, _NUM_CHANNELS])
-
-    # Randomly flip the image horizontally.
-    image = tf.image.random_flip_left_right(image)
-
-  # Subtract off the mean and divide by the variance of the pixels.
-  image = tf.image.per_image_standardization(image)
-  return image
-
-
 def input_fn(is_training, data_dir, batch_size, num_epochs=1,
              num_parallel_calls=1, multi_gpu=False):
   """Input_fn using the tf.data input pipeline for CIFAR-10 dataset.
@@ -200,10 +200,14 @@ def input_fn(is_training, data_dir, batch_size, num_epochs=1,
 
   num_images = is_training and _NUM_IMAGES['train'] or _NUM_IMAGES['validation']
 
-  return process_record_dataset(dataset, is_training, batch_size,
+  ds = process_record_dataset(dataset, is_training, batch_size,
                                 _NUM_IMAGES['train'],
                                 parse_record, num_epochs, num_parallel_calls,
                                 examples_per_epoch=num_images, multi_gpu=multi_gpu)
+  logging.info("DATASET obtained")
+  for k,v in ds.output_shapes.items():
+    logging.info(">> {0} {1} {2}".format(k,ds.output_types[k],v))
+  return ds
 
 
 ###############################################################################
@@ -249,7 +253,11 @@ class Cifar10Model(resnet_model.Model):
 
 def cifar10_model_fn(features, labels, mode, params):
   """Model function for CIFAR-10."""
-  features = tf.reshape(features, [-1, _HEIGHT, _WIDTH, _NUM_CHANNELS])
+
+  if not labels and isinstance(features,dict):
+    labels = features['lbl']
+  features = tf.reshape(features['img'] if isinstance(features,dict) else features,
+                        [-1, _HEIGHT, _WIDTH, _NUM_CHANNELS])
 
   learning_rate_fn = resnet_run_loop.learning_rate_with_decay(
       batch_size=params['batch_size'], batch_denom=128,
@@ -268,7 +276,9 @@ def cifar10_model_fn(features, labels, mode, params):
   def loss_filter_fn(name):
     return True
 
-  return resnet_run_loop.resnet_model_fn(features, labels, mode, Cifar10Model,
+  return resnet_run_loop.resnet_model_fn(features,
+                                         labels,
+                                         mode, Cifar10Model,
                                          resnet_size=params['resnet_size'],
                                          weight_decay=weight_decay,
                                          learning_rate_fn=learning_rate_fn,

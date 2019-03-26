@@ -35,6 +35,33 @@ from .utils.logging.hooks import timing_summary
 
 from . import resnet_model
 
+def build_tensor_serving_input_receiver_fn(shape, dtype=tf.float32,
+                                           batch_size=1):
+  """Returns a input_receiver_fn that can be used during serving.
+
+  This expects examples to come through as float tensors, and simply
+  wraps them as TensorServingInputReceivers.
+
+  Arguably, this should live in tf.estimator.export. Testing here first.
+
+  Args:
+    shape: list representing target size of a single example.
+    dtype: the expected datatype for the input example
+    batch_size: number of input tensors that will be passed for prediction
+
+  Returns:
+    A function that itself returns a TensorServingInputReceiver.
+  """
+  def serving_input_receiver_fn():
+    # Prep a placeholder where the input example will be fed in
+    features = tf.compat.v1.placeholder(
+        dtype=dtype, shape=[batch_size] + shape, name='input_tensor')
+
+    return tf.estimator.export.TensorServingInputReceiver(
+        features=features, receiver_tensors=features)
+
+  return serving_input_receiver_fn
+
 ################################################################################
 # Functions for running training/eval/validation loops for the model.
 ################################################################################
@@ -273,10 +300,24 @@ def resnet_main(flags, model_function, input_function, opts = None):
 
   flags.hooks.append("TimePerEpochHook")
   flags.hooks.append("CaptureTensorsHook")
+  def input_fn_train():
+      return input_function(True,
+                            flags.data_dir,
+                            flags.batch_size,
+                            flags.epochs_between_evals,
+                            flags.num_parallel_calls,
+                            flags.multi_gpu)
+
+  # Evaluate the model and print results
+  def input_fn_eval():
+    return input_function(False, flags.data_dir, flags.batch_size,
+                          1, flags.num_parallel_calls, flags.multi_gpu)
 
   global_times = timing_summary()
   history = {}
 
+  #######################################################################################
+  # TRAINING LOOP
   #train_hooks = None
   for _ in range(epochs_per_eval):
     train_hooks = hooks_helper.get_train_hook_dict(flags.hooks,
@@ -287,24 +328,12 @@ def resnet_main(flags, model_function, input_function, opts = None):
 
     logging.info('Starting a training cycle. %s',train_hooks.keys())
 
-    def input_fn_train():
-      return input_function(True,
-                            flags.data_dir,
-                            flags.batch_size,
-                            flags.epochs_between_evals,
-                            flags.num_parallel_calls,
-                            flags.multi_gpu)
-
     classifier.train(input_fn=input_fn_train,
                      hooks=train_hooks.values(),
                      max_steps=flags.max_train_steps)
 
 
     logging.info('Starting to evaluate.')
-    # Evaluate the model and print results
-    def input_fn_eval():
-      return input_function(False, flags.data_dir, flags.batch_size,
-                            1, flags.num_parallel_calls, flags.multi_gpu)
 
     # flags.max_train_steps is generally associated with testing and profiling.
     # As a result it is frequently called with synthetic data, which will
@@ -334,6 +363,7 @@ def resnet_main(flags, model_function, input_function, opts = None):
     epoch_times = train_hooks["TimePerEpochHook"].summary()
     global_times.add(epoch_times)
 
+  #######################################################################################
 
   #don't ask about the following I am happy I got this far
   history["val_loss"] = history.pop("loss")
@@ -341,13 +371,16 @@ def resnet_main(flags, model_function, input_function, opts = None):
   history["loss"] = history.pop("train_loss")
   history["acc"] = history.pop("train_accuracy")
 
+  # export_dtype = flags_core.get_tf_dtype(flags_obj)
+  # if flags_obj.image_bytes_as_serving_input:
+  #   input_receiver_fn = functools.partial(
+  #     image_bytes_serving_input_fn, shape, dtype=export_dtype)
+  # else:
+  input_receiver_fn = build_tensor_serving_input_receiver_fn(
+    [32,32,3], batch_size=flags.batch_size, dtype=tf.float32)
 
-
-  servable_model_path = classifier.export_savedmodel('/tmp/test-saved-model', input_fn_eval, as_text=True);
-  # classifier.export_savedmodel("/tmp/test-saved-model",
-  #                              None,
-  #                              strip_default_attrs=True)
-
+  servable_model_path = classifier.export_savedmodel('/tmp/test-saved-model', input_receiver_fn, as_text=True, strip_default_attrs=True);
+  logging.info("stored model to {0}".format(servable_model_path))
   logging.info("Completed %i epochs (acc %i, val_acc %i)", len(global_times.epoch_durations),len(history["acc"]),len(history["val_acc"]))
   return history,global_times
 
