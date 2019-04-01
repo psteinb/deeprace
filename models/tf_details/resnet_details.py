@@ -27,7 +27,9 @@ def can_train():
         if versiontuple(tfv,2) >= versiontuple(required,2):
             available_backends.append("tensorflow")
 
-    return available_backends
+    #return available_backends
+    #removing plain tensorflow from deeprace for now, TFv1 API is just too hard to master under time constraints
+    return []
 
 def data_loader(path, dsname = "cifar10"):
 
@@ -104,8 +106,8 @@ def train(train, test, datafraction, opts):
 
     return history, timings, { 'num_weights' : None }
 
-def infer(data, num_inferences, optsdict):
+# def infer(data, num_inferences, optsdict):
 
-    """ perform <num_inferences> on the given data """
-    from . import cifar10_main as cfmain
-    from . import resnet_run_loop as run_loop
+#     """ perform <num_inferences> on the given data """
+#     from . import cifar10_main as cfmain
+#     from . import resnet_run_loop as run_loop

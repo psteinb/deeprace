@@ -25,7 +25,7 @@ def can_train():
 
     if keras_found:
         from keras import __version__ as kv
-        max_version = "2.2.2"
+        max_version = "2.2.4"
         min_version = "2.1.0"
 
         if versiontuple(kv,3) >= versiontuple(min_version,3) and versiontuple(kv,3) <= versiontuple(max_version,3):

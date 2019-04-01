@@ -134,11 +134,12 @@ class model(base_model):
             from .keras_details.resnet_details import data_loader
             return data_loader(temp_path, dataset_name)
 
-        elif "tf" == self.backend.lower() or "tensorflow" == self.backend.lower():
-            from .tf_details.resnet_details import data_loader
-            return data_loader(temp_path, dataset_name)
+        #TODO: enable pure tensorflow again, once TF2 has matured
+        # elif "tf" == self.backend.lower() or "tensorflow" == self.backend.lower():
+        #     from .tf_details.resnet_details import data_loader
+        #     return data_loader(temp_path, dataset_name)
 
-        elif "tf.keras" == self.backend.lower() or "tensorflow.keras" == self.backend.lower():
+        elif ("tf" in self.backend.lower() or "tensorflow" in self.backend.lower()) and "keras" in self.backend.lower():
             from .keras_details.tfkeras_resnet_details import data_loader
             return data_loader(temp_path, dataset_name)
 

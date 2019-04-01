@@ -67,7 +67,7 @@ def infer_model(args):
         model.backend=args["--backend"]
 
     if model.backend == "tensorflow" or model.backend == "tf":
-        logging.error("inference with tensorflow as backend is not implemented yet")
+        logging.error("inference with tensorflow as backend is not implemented yet, waiting for TF2 to mature")
         return 1
 
     #remove unneeded keys here

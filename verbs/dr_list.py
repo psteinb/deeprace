@@ -34,7 +34,7 @@ def available_models():
     for it in found_model_files:
         fname = os.path.split(it)[-1]
         modelstem = os.path.splitext(fname)[0]
-
+        logging.debug("checking {} to be loadable".format(fname))
         if "base" in modelstem:
             continue
 
@@ -63,7 +63,7 @@ def print_models():
             continue
         print("\t[%d] %s" % (counter," ".join(v[0])))
         print("\t     backend(s): %s" % (",".join( v[1])))
-        print("\t     datasets(s): %s" % (",".join( v[-1])))
+        print("\t     dataset(s): %s" % (",".join( v[-1])))
 
         counter += 1
 

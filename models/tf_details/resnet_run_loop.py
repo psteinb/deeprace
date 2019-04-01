@@ -379,7 +379,8 @@ def resnet_main(flags, model_function, input_function, opts = None):
   input_receiver_fn = build_tensor_serving_input_receiver_fn(
     [32,32,3], batch_size=flags.batch_size, dtype=tf.float32)
 
-  servable_model_path = classifier.export_savedmodel('/tmp/test-saved-model', input_receiver_fn, as_text=True, strip_default_attrs=True);
+  servable_model_path = classifier.export_savedmodel(flags.model_dir, input_receiver_fn, as_text=True, strip_default_attrs=True)
+
   logging.info("stored model to {0}".format(servable_model_path))
   logging.info("Completed %i epochs (acc %i, val_acc %i)", len(global_times.epoch_durations),len(history["acc"]),len(history["val_acc"]))
   return history,global_times
