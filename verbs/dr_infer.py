@@ -6,6 +6,7 @@ options:
     -O <mopts> --meta-options=<mopts>          hyper-parameters for training, e.g. batch_size
     -D <dpath> --datapath=<dpath>              path used for temporary storage, e.g. for the input data, checkpoints etc [default: datasets]
     -r <repeats> --nrepeats=<repeats>          how many times to repeat the test phase (unsupported yet) [default: 1]
+    -b <backe> --backend=<backe>               which backend to use [default: keras]
     -d <ds> --dataset=<ds>                     the dataset to use (depends on the model of choice) [default: model_default]
     -n <ninfer> --num_inferences=<dfrac>       mnumber of inferences to perform [default: 1]
     -t <output> --timings=<output>             file to store the individual timings in [default: inference.tsv]
