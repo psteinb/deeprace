@@ -33,7 +33,7 @@ from deeprace.utils.arg_parsers import parsers  # pylint: disable=g-bad-import-o
 from deeprace.utils.logging import hooks_helper
 from deeprace.utils.logging.hooks import timing_summary
 
-from deeprace. import resnet_model
+from deeprace.models import resnet_model
 
 def build_tensor_serving_input_receiver_fn(shape, dtype=tf.float32,
                                            batch_size=1):

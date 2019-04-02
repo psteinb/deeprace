@@ -26,7 +26,7 @@ from __future__ import print_function
 
 import tensorflow as tf
 
-from deeprace. import hooks
+from deeprace.models.tf_details.utils.logging import hooks
 
 _TENSORS_TO_LOG = dict((x, x) for x in ['learning_rate',
                                         'cross_entropy',
