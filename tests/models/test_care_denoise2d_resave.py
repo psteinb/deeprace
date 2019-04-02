@@ -1,29 +1,28 @@
 import pytest
 import os
 import glob
-import sys
 import numpy as np
 
 from tifffile import imread
-from datasets.care_denoise2d_resave import resave_to_chunks, load_chunk
-from datasets.care_denoise2d_data import create_data, create_data_from_chunks
+from deeprace.datasets.care_denoise2d_resave import resave_to_chunks, load_chunk
+from deeprace.datasets.care_denoise2d_data import create_data, create_data_from_chunks
 
-@pytest.fixture #(scope="module")
+
+@pytest.fixture  # (scope="module")
 def location():
 
-    parent = os.path.join(os.path.split(os.path.abspath(__file__))[0],"..")
-    folder = os.path.join(parent,"testdata")
+    parent = os.path.join(os.path.split(os.path.abspath(__file__))[0], "..")
+    folder = os.path.join(parent, "testdata")
     stem = 'pytest-care-denoise2d'
 
     def fin():
-        found = glob.glob(os.path.join(folder,stem+".np*"))
+        found = glob.glob(os.path.join(folder, stem + ".np*"))
         if len(found) > 0:
             for i in found:
                 print("removing {0}".format(i))
                 os.remove(i)
 
-    return {"dir" : folder, "stem" : stem}
-
+    return {"dir": folder, "stem": stem}
 
 
 def test_chunk_resave_produces_nonzero(location):
@@ -35,6 +34,7 @@ def test_chunk_resave_produces_nonzero(location):
     assert os.path.exists(chunkloc)
     assert os.stat(chunkloc).st_size > 0
 
+
 def test_correct_image_count(location):
 
     chunkloc = resave_to_chunks(root=location["dir"],
@@ -44,6 +44,7 @@ def test_correct_image_count(location):
     loaded = np.load(chunkloc)
     assert len(loaded.files) > 0
     assert len(loaded.files) == 10
+
 
 def test_correct_image_size(location):
     """ against output of tiffinfo
@@ -71,7 +72,8 @@ def test_correct_image_size(location):
 
     first = loaded[loaded.files[0]]
     assert first.shape != ()
-    assert first.shape == (520,696)
+    assert first.shape == (520, 696)
+
 
 def test_compare_image_with_tifffile(location):
 
@@ -84,15 +86,16 @@ def test_compare_image_with_tifffile(location):
     assert len(imgs) > 0
     first = imgs[0]
 
-    assert first.shape == (520,696)
+    assert first.shape == (520, 696)
 
-    fnames = glob.glob(os.path.join(location["dir"],"*tif"))
+    fnames = glob.glob(os.path.join(location["dir"], "*tif"))
     first_tiff = imread(fnames[0])
 
     assert first.shape == first_tiff.shape
 
     for i in imgs:
         assert i.shape == first_tiff.shape
+
 
 def test_chunk_integration(location):
 
@@ -102,9 +105,9 @@ def test_chunk_integration(location):
                                 n_imgs=10,
                                 output_stem=location["stem"])
 
-    observed = create_data_from_chunks(chunk_loc=chunkloc,n_imgs=10)
+    observed = create_data_from_chunks(chunk_loc=chunkloc, n_imgs=10)
 
     for i in range(len(expected)):
         assert expected[i].dtype == observed[i].dtype
         assert expected[i].shape == observed[i].shape
-        assert np.all( np.abs(expected[i] - observed[i]) < 1e5 )
+        assert np.all(np.abs(expected[i] - observed[i]) < 1e5)
