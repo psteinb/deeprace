@@ -29,76 +29,79 @@ from collections import OrderedDict
 from verbs.utils import uuid_from_this, yaml_this, yaml_ordered
 from verbs.loaders import import_model, load_model
 
+
 def describe(modelname):
 
     try:
-        (loaded,opts_from_name) = load_model(modelname[0])
+        (loaded, opts_from_name) = load_model(modelname[0])
     except Exception as ex:
 
         logging.error("model(s) {} unknown. Exiting.".format(modelname))
         return
 
     logging.info("available options for {}".format(modelname[0]))
-    for (k,v) in loaded.model().options().items():
-        print("  {name:20} = {default}".format(name=k,default=v))
+    for (k, v) in loaded.model().options().items():
+        print("  {name:20} = {default}".format(name=k, default=v))
+
 
 def run_model(args):
 
-    logging.debug("received %s as args",args)
+    logging.debug("received %s as args", args)
 
     if not "<model>" in args.keys():
         logging.error("no model recieved")
         return 1
 
     ############################################################################
-    ## IMPORT MODEL (as MODULE)
+    # IMPORT MODEL (as MODULE)
     ##
     modelname = args["<model>"]
-    (loaded,opts_from_name) = load_model(modelname)
+    (loaded, opts_from_name) = load_model(modelname)
 
     model = loaded.model()
-    logging.info("successfully imported %s",modelname)
+    logging.info("successfully imported %s", modelname)
 
     ############################################################################
-    ## HANDLE MODEL OPTIONS
+    # HANDLE MODEL OPTIONS
     ##
-    model.backend=args["--backend"]
+    model.backend = args["--backend"]
     deciphered = model.options()
     deciphered.update(opts_from_name)
     meta_opts = {}
 
     if "--meta-options" in args.keys() and args["--meta-options"]:
-        meta_opts = dict((k.strip(), v.strip()) for k,v in
+        meta_opts = dict((k.strip(), v.strip()) for k, v in
                          (item.split('=') for item in args["--meta-options"].split(',')))
         deciphered.update(meta_opts)
 
     if ("--nepochs") in args.keys() and int(args["--nepochs"]) > 0:
         deciphered["epochs"] = int(args["--nepochs"])
 
-    opts = ",".join(["{k}={v}".format(k=item[0],v=item[1]) for item in deciphered.items() ])
+    opts = ",".join(["{k}={v}".format(k=item[0], v=item[1]) for item in deciphered.items()])
     deciphered['datapath'] = args["--datapath"]
     if 'model_default' != args["--dataset"].lower():
         model.dataset = args["--dataset"].lower()
 
     try:
         start = datetime.datetime.now()
-        train, test, ntrain, ntest = model.data_loader(args["--datapath"],dataset_name=model.dataset)
+        train, test, ntrain, ntest = model.data_loader(args["--datapath"], dataset_name=model.dataset)
         end = datetime.datetime.now()
     except Exception as ex:
-        logging.error("unable to load indicated dataset %s from/into %s (%s operates with %s)",model.dataset,args["--datapath"], modelname, model.available_datasets())
+        logging.error("unable to load indicated dataset %s from/into %s (%s operates with %s)",
+                      model.dataset, args["--datapath"], modelname, model.available_datasets())
         logging.error(ex)
         sys.exit(1)
 
-    logging.info("loading the data took %f seconds", ((end-start).total_seconds()))
+    logging.info("loading the data took %f seconds", ((end - start).total_seconds()))
     logging.info("running %s training", modelname)
 
-    #update dictionary here
+    # update dictionary here
     d2 = model.options()
-    d3 = {key:d2[key] for key in deciphered if key in d2}
+    d3 = {key: d2[key] for key in deciphered if key in d2}
     if d3.keys() == deciphered.keys():
         model.__dict__ = deciphered
     else:
-        logging.error("options received (%s) do not match supported options (%s)",deciphered.keys(),d2.keys())
+        logging.error("options received (%s) do not match supported options (%s)", deciphered.keys(), d2.keys())
 
     if not os.path.exists(args["--resultspath"]):
         os.makedirs(args["--resultspath"])
@@ -108,69 +111,69 @@ def run_model(args):
     hname = socket.getfqdn().split(".")[0]
 
     ############################################################################
-    ## PERFORM TRAINING
+    # PERFORM TRAINING
     ##
-    hist, timings, details = model.train(train,test,datafraction=args["--datafraction"])
+    hist, timings, details = model.train(train, test, datafraction=args["--datafraction"])
 
     ############################################################################
-    ## WRITE RESULTS
+    # WRITE RESULTS
     ##
-    uuid= str(uuid_from_this(modelname, model.dataset, opts,float(args["--datafraction"]),versioneer.get_version()))
+    uuid = str(uuid_from_this(modelname, model.dataset, opts, float(args["--datafraction"]), versioneer.get_version()))
 
-    yaml_file = os.path.splitext(args["--timings"])[0]+".yaml"
-    with open(yaml_file,'w') as yamlf:
+    yaml_file = os.path.splitext(args["--timings"])[0] + ".yaml"
+    with open(yaml_file, 'w') as yamlf:
 
         odict = OrderedDict()
-        odict["host"]             =   hname
-        odict["model"]            =   modelname
-        odict["mode"]             =   "training"
-        odict["backend"]          =   args["--backend"]
-        odict["dataset"]          =   model.dataset
-        odict["load_dur_sec"]     =   (end-start).total_seconds()
-        odict["ntrain"]           =   ntrain
-        odict["ntest"]            =   ntest
-        odict["datafraction"]     =   float(args["--datafraction"])
-        odict["train_start"]      =   timings.train_begin.strftime("%Y%m%d:%H%M%S")
-        odict["train_end"]        =   timings.train_end.strftime("%Y%m%d:%H%M%S")
-        odict["opts"]             =   opts
-        odict["n_model_params"]   =   int(details['num_weights']) if type(details['num_weights']) != type(None) else 0
-        odict["versions"]         =   model.versions()
-        odict["deeprace_version"] =   versioneer.get_version()
-        odict["uuid"]             =   uuid
-        odict["comment"]          =   args["--comment"]
+        odict["host"] = hname
+        odict["model"] = modelname
+        odict["mode"] = "training"
+        odict["backend"] = args["--backend"]
+        odict["dataset"] = model.dataset
+        odict["load_dur_sec"] = (end - start).total_seconds()
+        odict["ntrain"] = ntrain
+        odict["ntest"] = ntest
+        odict["datafraction"] = float(args["--datafraction"])
+        odict["train_start"] = timings.train_begin.strftime("%Y%m%d:%H%M%S")
+        odict["train_end"] = timings.train_end.strftime("%Y%m%d:%H%M%S")
+        odict["opts"] = opts
+        odict["n_model_params"] = int(details['num_weights']) if not isinstance(details['num_weights'], type(None)) else 0
+        odict["versions"] = model.versions()
+        odict["deeprace_version"] = versioneer.get_version()
+        odict["uuid"] = uuid
+        odict["comment"] = args["--comment"]
 
         to_write = yaml_ordered(odict)
         #yaml.dump(to_write, yamlf, default_flow_style=False)
         yamlf.write(to_write)
-        logging.info("wrote %s",yaml_file)
+        logging.info("wrote %s", yaml_file)
 
-    with open(args["--timings"],'w') as csvout:
+    with open(args["--timings"], 'w') as csvout:
 
         tags = "uuid,epoch,rel_epoch_start_sec,epoch_dur_sec".split(",")
         for k in sorted(hist.keys()):
             tags.append(k)
 
         header_str = args["--separator"].join(tags)
-        csvout.write(header_str+"\n")
-
+        csvout.write(header_str + "\n")
 
         for i in range(len(timings.epoch_durations)):
 
-            fields = [uuid,str(i), str(timings.epoch_start[i]), str(timings.epoch_durations[i])]
+            fields = [uuid, str(i), str(timings.epoch_start[i]), str(timings.epoch_durations[i])]
 
             for k in sorted(hist.keys()):
                 fields.append(str(hist[k][i]))
 
             line = args["--separator"].join(fields)
-            csvout.write(line+"\n")
-            logging.debug("+ %s",line)
+            csvout.write(line + "\n")
+            logging.debug("+ %s", line)
 
         csvout.close()
-        logging.info('wrote %s',args["--timings"])
+        logging.info('wrote %s', args["--timings"])
 
     logging.info('Done.')
 
     return 0
+
 
 def main():
 

@@ -13,6 +13,7 @@ import shutil
 from datasets.care_denoise2d_data import create_data_from_chunks
 import logging
 
+
 def load_data(temp_dir='datasets'):
     """Loads CIFAR10 dataset.
 
@@ -25,15 +26,14 @@ def load_data(temp_dir='datasets'):
     if not os.path.exists(temp_dir):
         os.mkdir(temp_dir)
 
-    stored_loc = os.path.join(temp_dir,fname)
-    X,Y = None,None
+    stored_loc = os.path.join(temp_dir, fname)
+    X, Y = None, None
     with urllib.request.urlopen(origin) as response, open(stored_loc, 'wb') as out_file:
         shutil.copyfileobj(response, out_file)
         out_file.close()
-        logging.debug("downloaded %s to %s (size %d)",origin,stored_loc,os.stat(stored_loc).st_size)
-        X,Y = create_data_from_chunks(chunk_loc=stored_loc)
-        logging.debug("unpacked %s and %s", X.shape,Y.shape)
-
+        logging.debug("downloaded %s to %s (size %d)", origin, stored_loc, os.stat(stored_loc).st_size)
+        X, Y = create_data_from_chunks(chunk_loc=stored_loc)
+        logging.debug("unpacked %s and %s", X.shape, Y.shape)
 
     # if K.image_data_format() == 'channels_last':
     #     x_train = x_train.transpose(0, 2, 3, 1)

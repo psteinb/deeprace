@@ -1,5 +1,5 @@
-#thanks to https://stackoverflow.com/a/11887825
-def versiontuple(v, version_index = -1):
+# thanks to https://stackoverflow.com/a/11887825
+def versiontuple(v, version_index=-1):
     """ convert a version string to a tuple of integers
     argument <v> is the version string, <version_index> refers o how many '.' splitted shall be returned
 

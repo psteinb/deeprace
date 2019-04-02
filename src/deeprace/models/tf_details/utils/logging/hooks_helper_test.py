@@ -28,37 +28,38 @@ from official.utils.logging import hooks_helper
 
 class BaseTest(unittest.TestCase):
 
-  def test_raise_in_non_list_names(self):
-    with self.assertRaises(ValueError):
-      hooks_helper.get_train_hooks(
-          'LoggingTensorHook, ProfilerHook', batch_size=256)
+    def test_raise_in_non_list_names(self):
+        with self.assertRaises(ValueError):
+            hooks_helper.get_train_hooks(
+                'LoggingTensorHook, ProfilerHook', batch_size=256)
 
-  def test_raise_in_invalid_names(self):
-    invalid_names = ['StepCounterHook', 'StopAtStepHook']
-    with self.assertRaises(ValueError):
-      hooks_helper.get_train_hooks(invalid_names, batch_size=256)
+    def test_raise_in_invalid_names(self):
+        invalid_names = ['StepCounterHook', 'StopAtStepHook']
+        with self.assertRaises(ValueError):
+            hooks_helper.get_train_hooks(invalid_names, batch_size=256)
 
-  def validate_train_hook_name(self,
-                               test_hook_name,
-                               expected_hook_name,
-                               **kwargs):
-    returned_hook = hooks_helper.get_train_hooks([test_hook_name], **kwargs)
-    self.assertEqual(len(returned_hook), 1)
-    self.assertIsInstance(returned_hook[0], tf.train.SessionRunHook)
-    self.assertEqual(returned_hook[0].__class__.__name__.lower(),
-                     expected_hook_name)
+    def validate_train_hook_name(self,
+                                 test_hook_name,
+                                 expected_hook_name,
+                                 **kwargs):
+        returned_hook = hooks_helper.get_train_hooks([test_hook_name], **kwargs)
+        self.assertEqual(len(returned_hook), 1)
+        self.assertIsInstance(returned_hook[0], tf.train.SessionRunHook)
+        self.assertEqual(returned_hook[0].__class__.__name__.lower(),
+                         expected_hook_name)
 
-  def test_get_train_hooks_logging_tensor_hook(self):
-    test_hook_name = 'LoggingTensorHook'
-    self.validate_train_hook_name(test_hook_name, 'loggingtensorhook')
+    def test_get_train_hooks_logging_tensor_hook(self):
+        test_hook_name = 'LoggingTensorHook'
+        self.validate_train_hook_name(test_hook_name, 'loggingtensorhook')
 
-  def test_get_train_hooks_profiler_hook(self):
-    test_hook_name = 'ProfilerHook'
-    self.validate_train_hook_name(test_hook_name, 'profilerhook')
+    def test_get_train_hooks_profiler_hook(self):
+        test_hook_name = 'ProfilerHook'
+        self.validate_train_hook_name(test_hook_name, 'profilerhook')
 
-  def test_get_train_hooks_examples_per_second_hook(self):
-    test_hook_name = 'ExamplesPerSecondHook'
-    self.validate_train_hook_name(test_hook_name, 'examplespersecondhook')
+    def test_get_train_hooks_examples_per_second_hook(self):
+        test_hook_name = 'ExamplesPerSecondHook'
+        self.validate_train_hook_name(test_hook_name, 'examplespersecondhook')
+
 
 if __name__ == '__main__':
-  tf.test.main()
+    tf.test.main()

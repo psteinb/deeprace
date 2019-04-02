@@ -10,53 +10,55 @@ import tarfile
 from six.moves import urllib
 from deeprace.models.tools.utils import versiontuple
 
+
 def can_train():
 
     tf_found = importlib.util.find_spec('tensorflow')
     available_backends = []
     if tf_found:
-        #thanks to https://github.com/pydata/pandas/issues/2841
+        # thanks to https://github.com/pydata/pandas/issues/2841
         import warnings
         warnings.simplefilter(action='ignore', category=FutureWarning)
 
         from tensorflow import __version__ as tfv
         required = "1.6.0"
 
-        #only require major and minor release number as the patch number may contain 'rc' etc
-        if versiontuple(tfv,2) >= versiontuple(required,2):
+        # only require major and minor release number as the patch number may contain 'rc' etc
+        if versiontuple(tfv, 2) >= versiontuple(required, 2):
             available_backends.append("tensorflow")
 
-    #return available_backends
-    #removing plain tensorflow from deeprace for now, TFv1 API is just too hard to master under time constraints
+    # return available_backends
+    # removing plain tensorflow from deeprace for now, TFv1 API is just too hard to master under time constraints
     return []
 
-def data_loader(path, dsname = "cifar10"):
+
+def data_loader(path, dsname="cifar10"):
 
     DATA_URL = 'https://www.cs.toronto.edu/~kriz/cifar-10-binary.tar.gz'
     filename = DATA_URL.split('/')[-1]
     filepath = os.path.join(path, filename)
 
     if not os.path.exists(filepath):
-      def _progress(count, block_size, total_size):
-        sys.stdout.write('\r>> Downloading %s %.1f%%' % (
-            filename, 100.0 * count * block_size / total_size))
-        sys.stdout.flush()
+        def _progress(count, block_size, total_size):
+            sys.stdout.write('\r>> Downloading %s %.1f%%' % (
+                filename, 100.0 * count * block_size / total_size))
+            sys.stdout.flush()
 
-      filepath, _ = urllib.request.urlretrieve(DATA_URL, filepath, _progress)
-      print()
-      statinfo = os.stat(filepath)
-      print('Successfully downloaded', filename, statinfo.st_size, 'bytes.')
+        filepath, _ = urllib.request.urlretrieve(DATA_URL, filepath, _progress)
+        print()
+        statinfo = os.stat(filepath)
+        print('Successfully downloaded', filename, statinfo.st_size, 'bytes.')
     else:
-      print('Nothing to do, %s exists' % filepath)
+        print('Nothing to do, %s exists' % filepath)
 
     tarfile.open(filepath, 'r:gz').extractall(path)
 
-    #TODO: add some logic to see if all samples have been extracted
+    # TODO: add some logic to see if all samples have been extracted
 
     return None, None, 5e4, 1e4
 
 
-def compute_depth(n=3,version=1):
+def compute_depth(n=3, version=1):
     value = 0
     if version == 1:
         value = n * 6 + 2
@@ -66,7 +68,6 @@ def compute_depth(n=3,version=1):
 
 
 def train(train, test, datafraction, opts):
-
     """setup the resnet and run the train function, train and test will be None here as reading the files from disk needs to be part of the compute graph AFAIK """
 
     return None

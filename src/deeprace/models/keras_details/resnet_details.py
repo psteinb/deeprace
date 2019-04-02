@@ -10,12 +10,13 @@ import random
 from deeprace.models.tools.utils import versiontuple
 from deeprace.models.keras_details.model_utils import to_disk
 
-def data_loader(temp_path, dsname = "cifar10" ):
+
+def data_loader(temp_path, dsname="cifar10"):
 
     if "cifar100" in dsname.lower():
         logging.error("resnet :: cifar100 is not supported yet")
         sys.exit(1)
-        #TODO likely to yield an error
+        # TODO likely to yield an error
         # from deeprace.datasets import cifar100
         # train, test = cifar100.load_data(temp_path)
         # ntrain, ntest = train[0].shape[0], test[0].shape[0]
@@ -25,7 +26,6 @@ def data_loader(temp_path, dsname = "cifar10" ):
         train, test = cifar10.load_data(temp_path)
         ntrain, ntest = train[0].shape[0], test[0].shape[0]
         return train, test, ntrain, ntest
-
 
 
 def can_train():
@@ -41,15 +41,15 @@ def can_train():
         max_version = "2.2.4"
         min_version = "2.1.0"
 
-        if versiontuple(kv,3) >= versiontuple(min_version,3) and versiontuple(kv,3) <= versiontuple(max_version,3):
+        if versiontuple(kv, 3) >= versiontuple(min_version, 3) and versiontuple(kv, 3) <= versiontuple(max_version, 3):
             available_backends.append("keras")
         else:
-            logging.debug("your keras version %s is not supported (%s - %s)",str(kv),min_version,max_version)
+            logging.debug("your keras version %s is not supported (%s - %s)", str(kv), min_version, max_version)
 
     return available_backends
 
 
-def compute_depth(n=3,version=1):
+def compute_depth(n=3, version=1):
     value = 0
     if version == 1:
         value = n * 6 + 2
@@ -57,30 +57,30 @@ def compute_depth(n=3,version=1):
         value = n * 9 + 2
     return value
 
-def infer(data, num_inferences, optsdict):
 
+def infer(data, num_inferences, optsdict):
     """ perform <num_inferences> on the given data """
 
     import keras
     from keras.models import model_from_json
     from keras.optimizers import Adam
     ####################################################################################################################
-    ## LOADING THE MODEL
+    # LOADING THE MODEL
     ##
     no_ext = os.path.splitext(optsdict["weights_file"])[0]
     model_json = no_ext + '.json'
 
     if not os.path.exists(model_json):
-        logging.error("%s does not exist, unable to load a model and thus perform inference!",model_json)
+        logging.error("%s does not exist, unable to load a model and thus perform inference!", model_json)
         return None, None, None
 
     model_weights = no_ext + '.h5'
     if not os.path.exists(model_weights):
-        logging.error("%s does not exist, unable to load the model weights and thus perform inference!",model_json)
+        logging.error("%s does not exist, unable to load the model weights and thus perform inference!", model_json)
         return None, None, None
 
-    ## Watch out for
-    with open(model_json,"r") as f:
+    # Watch out for
+    with open(model_json, "r") as f:
         json_str = f.read()
         f.close()
 
@@ -91,29 +91,28 @@ def infer(data, num_inferences, optsdict):
     model.compile(optimizer=Adam())
 
     nsamples_infer = int(num_inferences) if int(num_inferences) <= data[0].shape[0] else data[0].shape[0]
-    batch_size=int(optsdict["batch_size"]) if int(optsdict["batch_size"]) < nsamples_infer else 1
+    batch_size = int(optsdict["batch_size"]) if int(optsdict["batch_size"]) < nsamples_infer else 1
 
     n_iterations = nsamples_infer // batch_size
-    timings = [0]*n_iterations
-    predictions = [0.]*n_iterations
+    timings = [0] * n_iterations
+    predictions = [0.] * n_iterations
 
     for t in range(n_iterations):
 
-        random_id = int(round(random.uniform(0,data[0].shape[0] - batch_size)))
-        input_data = data[0][random_id:random_id+batch_size,...]
+        random_id = int(round(random.uniform(0, data[0].shape[0] - batch_size)))
+        input_data = data[0][random_id:random_id + batch_size, ...]
 
         start = datetime.datetime.now()
-        result = model.evaluate(input_data,verbose=True, batch_size = batch_size)
+        result = model.evaluate(input_data, verbose=True, batch_size=batch_size)
         end = datetime.datetime.now()
 
-        timings[t] = ((end-start).total_seconds())
+        timings[t] = ((end - start).total_seconds())
         predictions[t] = result
-
 
     return predictions, timings, None
 
-def train(train, test, datafraction, optsdict):
 
+def train(train, test, datafraction, optsdict):
     """setup the resnet and run the train function"""
 
     datafraction = float(datafraction)
@@ -135,42 +134,43 @@ def train(train, test, datafraction, optsdict):
     from deeprace.models.keras_details.model_utils import model_size, to_disk
     from keras.utils import multi_gpu_model
 
-    batch_size=int(optsdict["batch_size"])
-    epochs=int(optsdict["epochs"])
+    batch_size = int(optsdict["batch_size"])
+    epochs = int(optsdict["epochs"])
     if epochs <= 0:
         epochs = 200
         optsdict["epochs"] = epochs
 
     optsdict["n_gpus"] = int(optsdict["n_gpus"])
-    depth = compute_depth(optsdict["n"],optsdict["version"])
+    depth = compute_depth(optsdict["n"], optsdict["version"])
     model_type = 'ResNet%dv%d' % (depth, optsdict["version"])
 
-    if type(optsdict["data_augmentation"]) == type(str()):
+    if isinstance(optsdict["data_augmentation"], type(str())):
         data_augmentation = bool(strtobool(optsdict["data_augmentation"]))
     else:
         data_augmentation = optsdict["data_augmentation"]
 
-    if type(optsdict["checkpoint_epochs"]) == type(str()):
+    if isinstance(optsdict["checkpoint_epochs"], type(str())):
         checkpoint_epochs = bool(strtobool(optsdict["checkpoint_epochs"]))
     else:
         checkpoint_epochs = optsdict["checkpoint_epochs"]
 
-    if type(optsdict["subtract_pixel_mean"]) == type(str()):
+    if isinstance(optsdict["subtract_pixel_mean"], type(str())):
         subtract_pixel_mean = bool(strtobool(optsdict["subtract_pixel_mean"]))
     else:
         subtract_pixel_mean = optsdict["subtract_pixel_mean"]
 
     logging.info("received options: %s", optsdict)
-    logging.info("%s (%i epochs):: batch_size = %i, depth = %i, data_augmentation/checkpoint/subtract_pixel_mean %i/%i/%i", model_type, epochs,batch_size,depth,data_augmentation,checkpoint_epochs,subtract_pixel_mean)
+    logging.info("%s (%i epochs):: batch_size = %i, depth = %i, data_augmentation/checkpoint/subtract_pixel_mean %i/%i/%i",
+                 model_type, epochs, batch_size, depth, data_augmentation, checkpoint_epochs, subtract_pixel_mean)
 
-    nsamples_train = int(math.floor(train[0].shape[0]*datafraction))
-    nsamples_test = int(math.floor(test[0].shape[0]*datafraction))
+    nsamples_train = int(math.floor(train[0].shape[0] * datafraction))
+    nsamples_test = int(math.floor(test[0].shape[0] * datafraction))
 
-    x_train = train[0][:nsamples_train,...]
-    y_train = train[-1][:nsamples_train,...]
+    x_train = train[0][:nsamples_train, ...]
+    y_train = train[-1][:nsamples_train, ...]
 
-    x_test = test[0][:nsamples_test,...]
-    y_test = test[-1][:nsamples_test,...]
+    x_test = test[0][:nsamples_test, ...]
+    y_test = test[-1][:nsamples_test, ...]
 
     # Input image dimensions.
     input_shape = x_train.shape[1:]
@@ -185,15 +185,14 @@ def train(train, test, datafraction, optsdict):
         x_train -= x_train_mean
         x_test -= x_train_mean
 
-    logging.info('x_train shape: %s, %i samples', str(x_train.shape),x_train.shape[0])
-    logging.info('y_train shape: %s, %i samples', str(y_train.shape),y_train.shape[0])
-    logging.info('x_test shape: %s, %i samples', str(x_test.shape),x_test.shape[0])
-    logging.info('y_test shape: %s, %i samples', str(y_test.shape),y_test.shape[0])
+    logging.info('x_train shape: %s, %i samples', str(x_train.shape), x_train.shape[0])
+    logging.info('y_train shape: %s, %i samples', str(y_train.shape), y_train.shape[0])
+    logging.info('x_test shape: %s, %i samples', str(x_test.shape), x_test.shape[0])
+    logging.info('y_test shape: %s, %i samples', str(y_test.shape), y_test.shape[0])
 
     # Convert class vectors to binary class matrices.
     y_train = keras.utils.to_categorical(y_train, optsdict["num_classes"])
     y_test = keras.utils.to_categorical(y_test, optsdict["num_classes"])
-
 
     def lr_schedule(epoch):
         """Learning Rate Schedule
@@ -218,7 +217,6 @@ def train(train, test, datafraction, optsdict):
             lr *= 1e-1
             print('Learning rate: ', lr)
         return lr
-
 
     def resnet_layer(inputs,
                      num_filters=16,
@@ -264,7 +262,6 @@ def train(train, test, datafraction, optsdict):
                 x = conv(x)
         return x
 
-
     def resnet_v1(input_shape, depth, num_classes=10):
         """ResNet Version 1 Model builder [a]
 
@@ -299,7 +296,6 @@ def train(train, test, datafraction, optsdict):
         num_filters = 16
         num_res_blocks = int((depth - 2) / 6)
 
-
         inputs = Input(shape=input_shape)
         x = resnet_layer(inputs=inputs)
         # Instantiate the stack of residual units
@@ -309,11 +305,11 @@ def train(train, test, datafraction, optsdict):
                 if stack > 0 and res_block == 0:  # first layer but not first stack
                     strides = 2  # downsample
                 y = resnet_layer(inputs=x,
-                                     num_filters=num_filters,
-                                     strides=strides)
+                                 num_filters=num_filters,
+                                 strides=strides)
                 y = resnet_layer(inputs=y,
-                                     num_filters=num_filters,
-                                     activation=None)
+                                 num_filters=num_filters,
+                                 activation=None)
                 if stack > 0 and res_block == 0:  # first layer but not first stack
                     # linear projection residual shortcut connection to match
                     # changed dims
@@ -338,7 +334,6 @@ def train(train, test, datafraction, optsdict):
         # Instantiate model.
         model = Model(inputs=inputs, outputs=outputs)
         return model
-
 
     def resnet_v2(input_shape, depth, num_classes=10):
         """ResNet Version 2 Model builder [b]
@@ -437,9 +432,9 @@ def train(train, test, datafraction, optsdict):
 
     generate_it = None
     if optsdict["version"] == 2:
-        generate_it = resnet_v2 #(input_shape=input_shape, depth=depth)
+        generate_it = resnet_v2  # (input_shape=input_shape, depth=depth)
     else:
-        generate_it = resnet_v1 #(input_shape=input_shape, depth=depth)
+        generate_it = resnet_v1  # (input_shape=input_shape, depth=depth)
 
     model = None
     if optsdict["n_gpus"] != 1 and "tensorflow" in K.backend().lower():
@@ -451,14 +446,12 @@ def train(train, test, datafraction, optsdict):
     else:
         model = generate_it(input_shape=input_shape, depth=depth)
 
-
     model.compile(loss='categorical_crossentropy',
                   optimizer=Adam(lr=lr_schedule(0)),
-                  metrics=['accuracy','top_k_categorical_accuracy'])
+                  metrics=['accuracy', 'top_k_categorical_accuracy'])
 
     if logging.getLogger().level == logging.DEBUG:
         model.summary()
-
 
     lr_scheduler = LearningRateScheduler(lr_schedule)
 
@@ -521,7 +514,7 @@ def train(train, test, datafraction, optsdict):
             horizontal_flip=True,
             # randomly flip images
             vertical_flip=False
-                         )
+        )
 
         # Compute quantities required for featurewise normalization
         # (std, mean, and principal components if ZCA whitening is applied).
@@ -529,7 +522,7 @@ def train(train, test, datafraction, optsdict):
 
         # Fit the model on the batches generated by datagen.flow().
         hist = model.fit_generator(datagen.flow(x_train, y_train, batch_size=batch_size),
-                                   steps_per_epoch=math.ceil(len(x_train) / batch_size),##required with keras 2.2.4
+                                   steps_per_epoch=math.ceil(len(x_train) / batch_size),  # required with keras 2.2.4
                                    validation_data=(x_test, y_test),
                                    epochs=epochs, verbose=1, workers=4,
                                    callbacks=callbacks)
@@ -538,7 +531,6 @@ def train(train, test, datafraction, optsdict):
                                                                                        finishtime=time.strftime("%H%M%S"),
                                                                                        modeldescr=model_type)
 
-    to_disk(model,os.path.join(optsdict["scratchspace"],weights_fname))
+    to_disk(model, os.path.join(optsdict["scratchspace"], weights_fname))
 
-    return hist.history, stopw, { 'num_weights' : model_size(model) }
-
+    return hist.history, stopw, {'num_weights': model_size(model)}

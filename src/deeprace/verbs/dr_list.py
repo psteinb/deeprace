@@ -18,19 +18,20 @@ if importlib:
 else:
     raise Exception("unable to find importlib.util.find_spec, are you using python 3.4+ ?")
 
+
 def available_models():
 
     value = {}
 
     basepath = '.'
 
-    if not os.path.exists(os.path.join(".","models")):
-        if not os.path.exists(os.path.join("..","models")):
+    if not os.path.exists(os.path.join(".", "models")):
+        if not os.path.exists(os.path.join("..", "models")):
             return value
         else:
-            basepath='..'
+            basepath = '..'
 
-    found_model_files = glob.glob(os.path.join(basepath,"models","*.py"))
+    found_model_files = glob.glob(os.path.join(basepath, "models", "*.py"))
     for it in found_model_files:
         fname = os.path.split(it)[-1]
         modelstem = os.path.splitext(fname)[0]
@@ -40,7 +41,7 @@ def available_models():
 
         name = "models.%s" % (modelstem)
         ld = finder(modelstem, package="models")
-        if ld != None:
+        if ld is not None:
             logging.warning("found %s but could not find a loader for it" % fname)
         else:
             current = importlib.import_module(name)
@@ -50,6 +51,7 @@ def available_models():
 
     return value
 
+
 def print_models():
     models = available_models()
     if not models:
@@ -57,13 +59,13 @@ def print_models():
         return 1
 
     logging.info("available models and backends:")
-    counter = 0;
-    for k,v in models.items():
+    counter = 0
+    for k, v in models.items():
         if len(v) < 2:
             continue
-        print("\t[%d] %s" % (counter," ".join(v[0])))
-        print("\t     backend(s): %s" % (",".join( v[1])))
-        print("\t     dataset(s): %s" % (",".join( v[-1])))
+        print("\t[%d] %s" % (counter, " ".join(v[0])))
+        print("\t     backend(s): %s" % (",".join(v[1])))
+        print("\t     dataset(s): %s" % (",".join(v[-1])))
 
         counter += 1
 

@@ -32,22 +32,15 @@ https://github.com/psteinb/deeprace
 
 from docopt import docopt, DocoptExit
 import os
-import sys
-import argparse
-import glob
 import importlib
-import re
-import datetime
 import logging
 import socket
 import datetime
-from subprocess import call
-
 
 def main(argv=None):
     try:
         parsed = docopt(__doc__, argv,
-                      options_first=True)
+                        options_first=True)
     except Exception as ex:
         print("parsing deeprace command line args caused exception")
         print(ex)
@@ -63,7 +56,7 @@ def main(argv=None):
     hname = socket.gethostname().split(".")[0]
 
     numeric_level = getattr(logging, 'DEBUG', None)
-    logging.basicConfig(level=numeric_level,format=('[%(asctime)-15s '+hname+'] :: %(message)s'),datefmt="%y%m%d %H:%M:%S")
+    logging.basicConfig(level=numeric_level, format=('[%(asctime)-15s ' + hname + '] :: %(message)s'), datefmt="%y%m%d %H:%M:%S")
 
     logging.debug(argv)
     argv = [parsed['<command>']] + parsed['<args>']
@@ -71,7 +64,7 @@ def main(argv=None):
     rvalue = 0
 
     if parsed['--verbose'] or 'version' in parsed['<command>']:
-        logging.info('deeprace {}'.format(myversion) )
+        logging.info('deeprace {}'.format(myversion))
         return 1
 
     if '--help' in parsed:
@@ -85,15 +78,15 @@ def main(argv=None):
 
     elif parsed['<command>'] in ['help', None]:
 
-        if len(parsed['<args>']) and os.path.exists(os.path.join('verbs','dr_'+parsed['<args>'][0]+'.py')):
-            #print the help message of a verb
-            verb = importlib.import_module('deeprace.verbs.dr_'+parsed['<args>'][0])
+        if len(parsed['<args>']) and os.path.exists(os.path.join('verbs', 'dr_' + parsed['<args>'][0] + '.py')):
+            # print the help message of a verb
+            verb = importlib.import_module('deeprace.verbs.dr_' + parsed['<args>'][0])
             print(verb.__doc__)
         else:
-            logging.info("deeprace (%s)", versioneer.get_version())
+            logging.info("deeprace (%s)", myversion)
             logging.info("for more information, see https://github.com/psteinb/deeprace\n")
             print(__doc__)
-            #return call([sys.executable, __file__, '--help'])
+            # return call([sys.executable, __file__, '--help'])
         rvalue = 1
 
     elif parsed['<command>'] == 'train':

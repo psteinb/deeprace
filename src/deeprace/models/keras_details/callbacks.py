@@ -2,6 +2,7 @@ import keras
 from keras.callbacks import Callback
 import datetime as dt
 
+
 class stopwatch(keras.callbacks.Callback):
     def on_train_begin(self, logs={}):
         self.train_begin = dt.datetime.now()

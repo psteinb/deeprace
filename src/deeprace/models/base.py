@@ -29,14 +29,12 @@ class base_model(metaclass=abc.ABCMeta):
         """ load input data into memory, return a tuple train <np.narray>, test <np.narray>, ntrain, ntest """
         pass
 
-
     @abc.abstractmethod
-    def train(train, test, datafraction = 1.):
+    def train(train, test, datafraction=1.):
         """ run the training of the model with train data <train|np.array> and <test|np.array>, but use only datafraction for training """
         pass
 
-
     @abc.abstractmethod
-    def infer(data, num_inferences = 1):
+    def infer(data, num_inferences=1):
         """ infer the model randomly selection images from <train|np.array> and <test|np.array>, but use only datafraction for training """
         pass

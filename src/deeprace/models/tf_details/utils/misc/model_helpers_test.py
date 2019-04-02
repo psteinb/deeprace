@@ -24,46 +24,46 @@ from official.utils.misc import model_helpers
 
 
 class PastStopThresholdTest(tf.test.TestCase):
-  """Tests for past_stop_threshold."""
+    """Tests for past_stop_threshold."""
 
-  def test_past_stop_threshold(self):
-    """Tests for normal operating conditions."""
-    self.assertTrue(model_helpers.past_stop_threshold(0.54, 1))
-    self.assertTrue(model_helpers.past_stop_threshold(54, 100))
-    self.assertFalse(model_helpers.past_stop_threshold(0.54, 0.1))
-    self.assertFalse(model_helpers.past_stop_threshold(-0.54, -1.5))
-    self.assertTrue(model_helpers.past_stop_threshold(-0.54, 0))
-    self.assertTrue(model_helpers.past_stop_threshold(0, 0))
-    self.assertTrue(model_helpers.past_stop_threshold(0.54, 0.54))
+    def test_past_stop_threshold(self):
+        """Tests for normal operating conditions."""
+        self.assertTrue(model_helpers.past_stop_threshold(0.54, 1))
+        self.assertTrue(model_helpers.past_stop_threshold(54, 100))
+        self.assertFalse(model_helpers.past_stop_threshold(0.54, 0.1))
+        self.assertFalse(model_helpers.past_stop_threshold(-0.54, -1.5))
+        self.assertTrue(model_helpers.past_stop_threshold(-0.54, 0))
+        self.assertTrue(model_helpers.past_stop_threshold(0, 0))
+        self.assertTrue(model_helpers.past_stop_threshold(0.54, 0.54))
 
-  def test_past_stop_threshold_none_false(self):
-    """Tests that check None returns false."""
-    self.assertFalse(model_helpers.past_stop_threshold(None, -1.5))
-    self.assertFalse(model_helpers.past_stop_threshold(None, None))
-    self.assertFalse(model_helpers.past_stop_threshold(None, 1.5))
-    # Zero should be okay, though.
-    self.assertTrue(model_helpers.past_stop_threshold(0, 1.5))
+    def test_past_stop_threshold_none_false(self):
+        """Tests that check None returns false."""
+        self.assertFalse(model_helpers.past_stop_threshold(None, -1.5))
+        self.assertFalse(model_helpers.past_stop_threshold(None, None))
+        self.assertFalse(model_helpers.past_stop_threshold(None, 1.5))
+        # Zero should be okay, though.
+        self.assertTrue(model_helpers.past_stop_threshold(0, 1.5))
 
-  def test_past_stop_threshold_not_number(self):
-    """Tests for error conditions."""
-    with self.assertRaises(ValueError):
-      model_helpers.past_stop_threshold("str", 1)
+    def test_past_stop_threshold_not_number(self):
+        """Tests for error conditions."""
+        with self.assertRaises(ValueError):
+            model_helpers.past_stop_threshold("str", 1)
 
-    with self.assertRaises(ValueError):
-      model_helpers.past_stop_threshold("str", tf.constant(5))
+        with self.assertRaises(ValueError):
+            model_helpers.past_stop_threshold("str", tf.constant(5))
 
-    with self.assertRaises(ValueError):
-      model_helpers.past_stop_threshold("str", "another")
+        with self.assertRaises(ValueError):
+            model_helpers.past_stop_threshold("str", "another")
 
-    with self.assertRaises(ValueError):
-      model_helpers.past_stop_threshold(0, None)
+        with self.assertRaises(ValueError):
+            model_helpers.past_stop_threshold(0, None)
 
-    with self.assertRaises(ValueError):
-      model_helpers.past_stop_threshold(0.7, "str")
+        with self.assertRaises(ValueError):
+            model_helpers.past_stop_threshold(0.7, "str")
 
-    with self.assertRaises(ValueError):
-      model_helpers.past_stop_threshold(tf.constant(4), None)
+        with self.assertRaises(ValueError):
+            model_helpers.past_stop_threshold(tf.constant(4), None)
 
 
 if __name__ == "__main__":
-  tf.test.main()
+    tf.test.main()
