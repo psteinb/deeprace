@@ -3,21 +3,26 @@ import pytest
 
 from deeprace.models import resnet
 
+
 def can_load_keras():
 
     value = False
     try:
         import keras as K
-    except:
+    except Exception as ex:
         return value
     else:
         return True
+
+    assert K.__version__
+
 
 def test_constructs():
 
     rnet = resnet.model()
 
     assert rnet.num_classes == 10
+
 
 def test_resnet_provides_something():
 
@@ -34,8 +39,8 @@ def test_resnet_has_options():
     rnet = resnet.model()
     obs = rnet.options()
 
-    assert type(obs) != None
-    assert type(obs) == type({})
+    assert not isinstance(obs, type(None))
+    assert isinstance(obs, type({}))
 
     assert obs["n"] == 5
     assert obs["num_classes"] == 10
@@ -49,8 +54,7 @@ def test_resnet_has_dataloader():
 
     if can_load_keras():
         obs = rnet.data_loader(".")
-        assert type(obs) != None
+        assert not isinstance(obs, type(None))
     else:
         with pytest.raises(Exception):
             rnet.data_loader(".")
-
