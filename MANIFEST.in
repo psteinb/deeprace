@@ -21,3 +21,6 @@ global-exclude *.py[cod] __pycache__ *.so *.dylib *~
 prune scripts
 prune share
 prune .travis
+exclude _version.py
+exclude versioneer.py
+exclude deeprace.py
