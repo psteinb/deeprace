@@ -15,8 +15,9 @@ options:
 
 The most commonly used git commands are:
    list      list available models
-   train     run training on a given model
+   train     run training for a given model
    describe  show available parameters for given model
+   infer     run inference for a given model
 
 See 'deeprace help <command>' for more information on a specific command.
 
@@ -81,6 +82,13 @@ def main():
         logging.debug("[train] handing over to run_model:")
         logging.debug(run_args)
         rvalue = verbs.dr_train.run_model(run_args)
+
+    elif args['<command>'] == 'infer':
+        import verbs.dr_infer
+        run_args = docopt(verbs.dr_infer.__doc__, argv=argv)
+        logging.debug("[infer] handing over to run_model:")
+        logging.debug(run_args)
+        rvalue = verbs.dr_infer.infer_model(run_args)
 
     elif args['<command>'] == 'describe':
         import verbs.dr_train
