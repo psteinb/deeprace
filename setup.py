@@ -73,7 +73,7 @@ setup(
     ],
     python_requires='>=3.4, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*',
     install_requires=[
-        'docopt==0.6.2', 'invoke==0.14.0', 'numpy', 'tifffile==0.15.1', 'keras==2.2.4', 'tensorflow>=1.7.0'
+        'docopt==0.6.2', 'invoke==0.14.0', 'numpy', 'tifffile==0.15.1', 'keras==2.2.4', 'tensorflow>=1.7.0', 'versioneer>=0.18'
     ],
     extras_require={
         # eg:
