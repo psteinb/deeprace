@@ -24,8 +24,8 @@ import logging
 
 import tensorflow as tf
 
-from deeprace. import resnet_model
-from deeprace. import resnet_run_loop
+from deeprace.models.tf_details import resnet_model
+from deeprace.models.tf_details import resnet_run_loop
 
 _HEIGHT = 32
 _WIDTH = 32
