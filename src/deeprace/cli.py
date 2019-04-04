@@ -9,7 +9,7 @@ usage: deeprace [options] <command> [<args>...]
 options:
    -h, --help                           print the help message
    -v, --version                        print the version of deeprace ({version})
-   -V, --verbose                        be verbose when running (log level 'debug')
+   -V, --verbose                        be verbose when running [default: False]
    -L <level> --loglevel=<level>        logging level to use [default: info]
 
 The most commonly used git commands are:
@@ -55,7 +55,6 @@ def main(argv=None):
 
     hname = socket.gethostname().split(".")[0]
 
-    numeric_level = getattr(logging, 'DEBUG', None)
     logging.basicConfig(level=numeric_level, format=('[%(asctime)-15s ' + hname + '] :: %(message)s'), datefmt="%y%m%d %H:%M:%S")
 
     logging.debug(argv)
@@ -63,11 +62,12 @@ def main(argv=None):
     logging.debug(argv)
     rvalue = 0
 
-    if parsed['--verbose'] or 'version' in parsed['<command>']:
+    if parsed['--version'] or 'version' in parsed['<command>']:
         logging.info('deeprace {}'.format(myversion))
         return 1
 
-    if '--help' in parsed:
+    if '--help' in parsed and parsed['--help'] or ('help' in parsed['<command>']):
+        print(parsed)
         print(__doc__)
         return 1
 
