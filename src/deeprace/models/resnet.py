@@ -7,7 +7,7 @@ import time
 
 from distutils.util import strtobool
 from deeprace.models.base import base_model
-
+from deeprace.models import register_model
 
 def compute_depth(n=3, version=1):
     value = 0
@@ -50,7 +50,7 @@ def params_from_name(name):
     return value
 
 
-class model(base_model):
+class race(base_model):
 
     def __init__(self):
         self.num_classes = 10
@@ -70,6 +70,7 @@ class model(base_model):
         else:
             self.dataset = None
 
+    @classmethod
     def available_datasets(self):
         datasets = []
 
@@ -85,6 +86,7 @@ class model(base_model):
 
         return datasets
 
+    @classmethod
     def provides(self):
         """ provide a tuple,
         item[0] yields a list which models can be provided by this module
@@ -102,7 +104,7 @@ class model(base_model):
 
         # TODO: automate this
         backends = []
-        datasets = self.available_datasets()
+        datasets = race.available_datasets()
 
         from deeprace.models.keras_details import resnet_details as keras_resnet
         if keras_resnet.can_train() != []:

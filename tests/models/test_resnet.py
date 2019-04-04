@@ -1,5 +1,27 @@
 from deeprace.models.resnet import params_from_name, name
+from deeprace.models import available
 
+def test_is_available():
+
+    res = available()
+
+    assert res is not None
+    assert isinstance(res,dict)
+
+    assert len(res.keys()) > 0
+    assert "resnet" in res.keys()
+
+def test_available_has_content():
+
+    res = available()
+
+    assert "resnet" in res.keys()
+    av_rnet = res["resnet"]
+    assert len(av_rnet) == 3
+    #print(av_rnet)
+    assert len(av_rnet[0]) >= 1
+    assert len(av_rnet[1]) >= 1
+    assert len(av_rnet[-1]) >= 1
 
 def test_defaults():
 

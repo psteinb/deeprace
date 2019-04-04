@@ -19,15 +19,14 @@ def can_load_keras():
 
 def test_constructs():
 
-    rnet = resnet.model()
+    rnet = resnet.race()
 
     assert rnet.num_classes == 10
 
 
 def test_resnet_provides_something():
 
-    rnet = resnet.model()
-    obs = rnet.provides()
+    obs = resnet.race.provides()
 
     assert len(obs) != 0
     assert "resnet32v1" in obs[0]
@@ -36,7 +35,7 @@ def test_resnet_provides_something():
 
 def test_resnet_has_options():
 
-    rnet = resnet.model()
+    rnet = resnet.race()
     obs = rnet.options()
 
     assert not isinstance(obs, type(None))
@@ -50,7 +49,7 @@ def test_resnet_has_options():
 
 def test_resnet_has_dataloader():
 
-    rnet = resnet.model()
+    rnet = resnet.race()
 
     if can_load_keras():
         obs = rnet.data_loader(".")
