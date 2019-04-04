@@ -73,12 +73,12 @@ class model(base_model):
     def available_datasets(self):
         datasets = []
 
-        from deeprace.models.keras_details import care_denoise2d_details as keras_net
+        from deeprace.models.keras_details import resnet_details as keras_net
         if keras_net.can_train() != []:
             if not 'cifar10' in datasets:
                 datasets.append('cifar10')
 
-        from deeprace.models.keras_details import tfkeras_care_denoise2d_details as tfkeras_net
+        from deeprace.models.keras_details import tfkeras_resnet_details as tfkeras_net
         if tfkeras_net.can_train() != []:
             if not 'cifar10' in datasets:
                 datasets.append('cifar10')
