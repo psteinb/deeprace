@@ -11,6 +11,7 @@ import sys
 import glob
 import importlib
 import logging
+from deeprace import models
 
 if importlib:
     import importlib.util
@@ -19,17 +20,18 @@ else:
     raise Exception("unable to find importlib.util.find_spec, are you using python 3.4+ ?")
 
 
-def available_models():
+def __available_models():
 
     value = {}
 
-    basepath = '.'
+    basepath = os.path.dirname(models.__file__)
 
-    if not os.path.exists(os.path.join(".", "models")):
-        if not os.path.exists(os.path.join("..", "models")):
-            return value
-        else:
-            basepath = '..'
+    logging.debug("checking available_models in {}".format(os.path.abspath(basepath)))
+    # if not os.path.exists(os.path.join(".", "models")):
+    #     if not os.path.exists(os.path.join("..", "models")):
+    #         return value
+    #     else:
+    #         basepath = '..'
 
     found_model_files = glob.glob(os.path.join(basepath, "models", "*.py"))
     for it in found_model_files:
@@ -53,7 +55,8 @@ def available_models():
 
 
 def print_models():
-    models = available_models()
+    from deeprace import models
+    models = models.available()
     if not models:
         logging.error("no models found")
         return 1
