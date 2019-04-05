@@ -55,7 +55,7 @@ def main(argv=None):
 
     hname = socket.gethostname().split(".")[0]
 
-    logging.basicConfig(level=numeric_level, format=('[%(asctime)-15s ' + hname + '] :: %(message)s'), datefmt="%y%m%d %H:%M:%S")
+    logging.basicConfig(level=numeric_level, format=('[%(asctime)-13s %(levelname)8s] %(message)s %(filename)20s:%(lineno)d'), datefmt="%m%d %H:%M:%S")
 
     logging.debug(argv)
     argv = [parsed['<command>']] + parsed['<args>']

@@ -15,38 +15,40 @@ from deeprace.models import __file__ as modelsfile
 def import_model(name):
     """ import a model and return the imported symbol """
 
-    expected_models_dir = os.path.dirname(modelsfile)
-    #expected_models_dir = os.path.join(os.path.dirname(expected_models_dir), "models")
+    # expected_models_dir = os.path.dirname(modelsfile)
+    # #expected_models_dir = os.path.join(os.path.dirname(expected_models_dir), "models")
 
-    if not os.path.exists(expected_models_dir):
-        logging.warning("%s was not found in %s", expected_models_dir, os.curdir)
-        return None
+    # if not os.path.exists(expected_models_dir):
+    #     logging.warning("%s was not found in %s", expected_models_dir, os.curdir)
+    #     return None
 
-    expected_location = os.path.join(expected_models_dir, name + ".py")
-    if not os.path.exists(expected_location):
-        logging.warning("%s was not found in %s", expected_location, os.curdir)
-        return None
-    else:
-        logging.info("found %s implementation", name)
+    # namestem = name.split('.')[-1]
+    # expected_location = os.path.join(expected_models_dir, namestem + ".py")
+    # if not os.path.exists(expected_location):
+    #     logging.warning("%s was not found in %s", expected_location, os.curdir)
+    #     return None
+    # else:
+    #     logging.info("found %s implementation", name)
 
-    try_this = ["", ".", ".."]
-    full_name = "models.%s" % (name)
+    # try_this = ["", ".", ".."]
+    # full_name = name if "deeprace" in name else "deeprace.models.%s" % (namestem)
 
-    ld = None
-    for it in try_this:
-        ld = finder(full_name, package="%smodels" % it)
+    # ld = None
+    # for it in try_this:
+    #     ld = finder(full_name, package="%smodels" % it)
 
-        if ld:
-            break
-        else:
-            logging.info("no finder with %s at %8s (cwd: %s)", full_name, it, os.path.abspath(os.curdir))
+    #     if ld:
+    #         break
+    #     else:
+    #         logging.info("no finder with %s at %8s (cwd: %s)", full_name, it, os.path.abspath(os.curdir))
 
-    if ld is None:
-        ld = finder(name, path="models")
+    # if ld is None:
+    #     ld = finder(name, path="models")
 
-    if ld is None:
-        return None
+    # if ld is None:
+    #     return None
 
+    full_name = name if "deeprace" in name else "deeprace.models.%s" % (name)
     return importlib.import_module(full_name)
 
 

@@ -135,8 +135,8 @@ def train(train, test, datafraction, optsdict):
     Model = tf.keras.models.Model
     multi_gpu_model = tf.keras.utils.multi_gpu_model
 
-    from deeprace.models.keras.callbacks import stopwatch
-    from deeprace.models.keras.model_utils import model_size
+    from deeprace.models.tfkeras.callbacks import stopwatch
+    from deeprace.models.tfkeras.model_utils import model_size
 
     batch_size = int(optsdict["batch_size"])
     epochs = int(optsdict["epochs"])

@@ -22,18 +22,18 @@ import sys
 import logging
 import datetime
 import socket
-import versioneer
+# import versioneer
 import yaml
 from collections import OrderedDict
 
 from deeprace.verbs.utils import uuid_from_this, yaml_this, yaml_ordered
 from deeprace.verbs.loaders import import_model, load_model
-
+from deeprace import __version__ as deeprace_version
 
 def describe(modelname):
 
     try:
-        (loaded, opts_from_name) = load_model(modelname[0])
+        (loaded, opts_from_name) = load_model(modelname[0] if "deeprace" in modelname[0] else "deeprace.models.{}".format(modelname[0]))
     except Exception as ex:
 
         logging.error("model(s) {} unknown. Exiting.".format(modelname))
@@ -56,9 +56,10 @@ def run_model(args):
     # IMPORT MODEL (as MODULE)
     ##
     modelname = args["<model>"]
+    modelname = modelname if "deeprace" in modelname else "deeprace.models.{}".format(modelname)
     (loaded, opts_from_name) = load_model(modelname)
 
-    model = loaded.model()
+    model = loaded.race()
     logging.info("successfully imported %s", modelname)
 
     ############################################################################
@@ -118,7 +119,7 @@ def run_model(args):
     ############################################################################
     # WRITE RESULTS
     ##
-    uuid = str(uuid_from_this(modelname, model.dataset, opts, float(args["--datafraction"]), versioneer.get_version()))
+    uuid = str(uuid_from_this(modelname, model.dataset, opts, float(args["--datafraction"]), deeprace_version))
 
     yaml_file = os.path.splitext(args["--timings"])[0] + ".yaml"
     with open(yaml_file, 'w') as yamlf:
@@ -138,7 +139,7 @@ def run_model(args):
         odict["opts"] = opts
         odict["n_model_params"] = int(details['num_weights']) if not isinstance(details['num_weights'], type(None)) else 0
         odict["versions"] = model.versions()
-        odict["deeprace_version"] = versioneer.get_version()
+        odict["deeprace_version"] = deeprace_version
         odict["uuid"] = uuid
         odict["comment"] = args["--comment"]
 
