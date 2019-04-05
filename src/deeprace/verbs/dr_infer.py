@@ -26,8 +26,8 @@ import versioneer
 import yaml
 from collections import OrderedDict
 
-from verbs.utils import uuid_from_this, yaml_this, yaml_ordered
-from verbs.loaders import import_model, load_model
+from deeprace.verbs.utils import uuid_from_this, yaml_this, yaml_ordered
+from deeprace.verbs.loaders import import_model, load_model
 
 
 try:

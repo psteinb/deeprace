@@ -10,12 +10,13 @@ except BaseException:
 else:
     finder = ilib_util.find_spec
 
+from deeprace.models import __file__ as modelsfile
 
 def import_model(name):
     """ import a model and return the imported symbol """
 
-    expected_models_dir = os.path.dirname(os.path.abspath(__file__))
-    expected_models_dir = os.path.join(os.path.dirname(expected_models_dir), "models")
+    expected_models_dir = os.path.dirname(modelsfile)
+    #expected_models_dir = os.path.join(os.path.dirname(expected_models_dir), "models")
 
     if not os.path.exists(expected_models_dir):
         logging.warning("%s was not found in %s", expected_models_dir, os.curdir)
