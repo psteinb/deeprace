@@ -74,12 +74,12 @@ class race(base_model):
     def available_datasets(self):
         datasets = []
 
-        from deeprace.models.keras_details import resnet_details as keras_net
+        from deeprace.models.keras import resnet_details as keras_net
         if keras_net.can_train() != []:
             if not 'cifar10' in datasets:
                 datasets.append('cifar10')
 
-        from deeprace.models.keras_details import tfkeras_resnet_details as tfkeras_net
+        from deeprace.models.keras import tfkeras_resnet_details as tfkeras_net
         if tfkeras_net.can_train() != []:
             if not 'cifar10' in datasets:
                 datasets.append('cifar10')
@@ -106,11 +106,11 @@ class race(base_model):
         backends = []
         datasets = self.available_datasets()
 
-        from deeprace.models.keras_details import resnet_details as keras_resnet
+        from deeprace.models.keras import resnet_details as keras_resnet
         if keras_resnet.can_train() != []:
             backends.extend(keras_resnet.can_train())
 
-        from deeprace.models.keras_details import tfkeras_resnet_details as tfkeras_resnet
+        from deeprace.models.tfkeras import resnet_details as tfkeras_resnet
         if tfkeras_resnet.can_train() != []:
             backends.extend(tfkeras_resnet.can_train())
 
@@ -135,7 +135,7 @@ class race(base_model):
 
         # TODO: this if clause is non-sense, there must be a better way
         if "keras" == self.backend.lower():
-            from deeprace.models.keras_details.resnet_details import data_loader
+            from deeprace.models.keras.resnet_details import data_loader
             return data_loader(temp_path, dataset_name)
 
         # TODO: enable pure tensorflow again, once TF2 has matured
@@ -144,7 +144,7 @@ class race(base_model):
         #     return data_loader(temp_path, dataset_name)
 
         elif ("tf" in self.backend.lower() or "tensorflow" in self.backend.lower()) and "keras" in self.backend.lower():
-            from deeprace.models.keras_details.tfkeras_resnet_details import data_loader
+            from deeprace.models.keras.tfkeras_resnet_details import data_loader
             return data_loader(temp_path, dataset_name)
 
     def train(self, train, test, datafraction=1.):
@@ -156,7 +156,7 @@ class race(base_model):
 
         # TODO: this if clause is non-sense, there must be a better way
         if "keras" == self.backend.lower():
-            from deeprace.models.keras_details import resnet_details as keras_resnet
+            from deeprace.models.keras import resnet_details as keras_resnet
             logging.info("using keras backend")
             return keras_resnet.train(train, test, datafraction, self.__dict__)
         # if "tf" == self.backend.lower() or "tensorflow" == self.backend.lower():
@@ -165,7 +165,7 @@ class race(base_model):
         #     return tf_resnet.train(train,test,datafraction,self.__dict__)
 
         if "tf.keras" == self.backend.lower() or "tensorflow.keras" == self.backend.lower():
-            from deeprace.models.keras_details import tfkeras_resnet_details as tfkeras_resnet
+            from deeprace.models.keras import tfkeras_resnet_details as tfkeras_resnet
             logging.info("using tensorflow.keras backend")
             return tfkeras_resnet.train(train, test, datafraction, self.__dict__)
 
@@ -173,12 +173,12 @@ class race(base_model):
         """setup the resnet and run the train function"""
 
         if "keras" == self.backend.lower():
-            from deeprace.models.keras_details import resnet_details as keras_resnet
+            from deeprace.models.keras import resnet_details as keras_resnet
             logging.info("using keras backend")
             return keras_resnet.infer(data, num_inferences, self.__dict__)
 
         if "tf.keras" == self.backend.lower() or "tensorflow.keras" == self.backend.lower():
-            from deeprace.models.keras_details import tfkeras_resnet_details as tfkeras_resnet
+            from deeprace.models.keras import tfkeras_resnet_details as tfkeras_resnet
             logging.info("using tensorflow.keras backend")
             return tfkeras_resnet.infer(data, num_inferences, self.__dict__)
         else:

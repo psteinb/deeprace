@@ -8,7 +8,7 @@ import datetime
 import random
 
 from deeprace.models.tools.utils import versiontuple
-from deeprace.models.keras_details.model_utils import to_disk
+from deeprace.models.keras.model_utils import to_disk
 
 
 def data_loader(temp_path, dsname="cifar10"):
@@ -130,8 +130,8 @@ def train(train, test, datafraction, optsdict):
     from keras.regularizers import l2
     from keras import backend as K
     from keras.models import Model
-    from deeprace.models.keras_details.callbacks import stopwatch
-    from deeprace.models.keras_details.model_utils import model_size, to_disk
+    from deeprace.models.keras.callbacks import stopwatch
+    from deeprace.models.keras.model_utils import model_size, to_disk
     from keras.utils import multi_gpu_model
 
     batch_size = int(optsdict["batch_size"])
